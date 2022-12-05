@@ -98,7 +98,7 @@ module od_parameters
   integer, allocatable, public, save :: exclude_bands(:)
 
   integer, public, save :: num_exclude_bands    ! this is set by param_write
-photo_temperature
+  
   ! Optics parameters
   character(len=20), public, save :: optics_geom
   real(kind=dp), public, save :: optics_qdir(3)
@@ -435,7 +435,7 @@ contains
    ! Photoemission parameters - V.Chang Nov-2020
 
     photo_momentum = 'crystal'
-    call param_get_keyword('momentum',found,c_value=photo_momentum)
+    call param_get_keyword('photo_momentum',found,c_value=photo_momentum)
     if(index(photo_momentum,'kp')==0 .and. index(photo_momentum,'crystal')==0 .and. index(photo_momentum,'operator')==0) &
          call io_error('Error: value of momentum not recognised in param_read')
 
@@ -454,18 +454,18 @@ contains
          call io_error('Error: please set workfunction for photoemission calculation')
 
     photo_theta_lower = 0.0_dp
-    call param_get_keyword('theta_lower',found,r_value=photo_theta_lower)
+    call param_get_keyword('photo_theta_lower',found,r_value=photo_theta_lower)
     photo_theta_upper = 90.0_dp
-    call param_get_keyword('theta_upper',found,r_value=photo_theta_upper)
+    call param_get_keyword('photo_theta_upper',found,r_value=photo_theta_upper)
     photo_phi_lower = 0.0_dp
-    call param_get_keyword('phi_lower',found,r_value=photo_phi_lower)
+    call param_get_keyword('photo_phi_lower',found,r_value=photo_phi_lower)
     photo_phi_upper = 90.0_dp
-    call param_get_keyword('phi_upper',found,r_value=photo_phi_upper)
-     call param_get_keyword('photon_energy',found,r_value=photo_photon_energy)
+    call param_get_keyword('photo_phi_upper',found,r_value=photo_phi_upper)
+     call param_get_keyword('photo_photon_energy',found,r_value=photo_photon_energy)
      if(photo .and. .not. found) &
          call io_error('Error: please set photon energy for photoemission calculation')
     bulk_length = 10.0_dp
-    call param_get_keyword('bulk_length',found,r_value=bulk_length)
+    call param_get_keyword('photo_bulk_length',found,r_value=bulk_length)
     photo_temperature = 298.0_dp
     call param_get_keyword('photo_temperature',found,r_value=photo_temperature)
 

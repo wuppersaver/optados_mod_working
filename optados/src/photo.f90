@@ -725,7 +725,7 @@ contains
                        atoms_pos_cart_photo
     use od_io, only: io_error
     use od_comms, only: my_node_id
-    use od_parameters, only: imfp_const
+    use od_parameters, only: photo_imfp_const
 
     integer :: atom, N, N_spin, n_eigen, ierr
     real(kind=dp) :: x, g2, efermi_scaled, a !(Evacuum-Ef)
@@ -751,7 +751,7 @@ contains
             if (cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad) .gt. 0.0_dp) then
               electron_esc(n_eigen, N, N_spin, atom) = &
                 exp((new_atoms_coordinates(3, atom_order(atom))/ &
-                     cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad))/imfp_const)
+                     cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad))/photo_imfp_const)
             end if
           end do
         end do
@@ -769,7 +769,7 @@ contains
     use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
                        atoms_pos_cart_photo, num_atoms, num_species
     use od_comms, only: my_node_id
-    use od_parameters, only: imfp_const, photo_photon_energy, jdos_spacing, bulk_length
+    use od_parameters, only: photo_imfp_const, photo_photon_energy, jdos_spacing, bulk_length
     use od_jdos_utils, only: jdos_nbins, E
     use od_io, only: stdout, io_error
 
@@ -780,7 +780,7 @@ contains
     integer :: N, N_spin, n_eigen, i, N_energy, num_layers
     integer :: atom, ierr
 
-    num_layers = int((imfp_const*bulk_length)/thickness_atom(max_atoms))
+    num_layers = int((photo_imfp_const*bulk_length)/thickness_atom(max_atoms))
 
     allocate (bulk_esc_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
@@ -803,7 +803,7 @@ contains
               bulk_esc_tmp(n_eigen, N, N_spin, i) = &
                 (exp(((new_atoms_coordinates(3, atom_order(max_atoms)) - &
                        i*thickness_atom(max_atoms)/ &
-                       cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad)))/imfp_const))
+                       cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad)))/photo_imfp_const))
             end do
           end if
         end do
@@ -1864,7 +1864,7 @@ contains
     !integer :: N,N_spin,n_eigen,z_distance,z,z_max
     integer :: N, N_spin, n_eigen
     real(kind=dp) :: l_prime, v_function, b_factor, transmission_prob, band_eff
-    real(kind=dp) :: p1, p2, p3, p4, q1, q2, q3, q4, p_term, q_term, trans_prob_long, v_func_long
+    real(kind=dp) :: p1, p2, p3, p4, q1, q2, q3, q4, p_term, q_term, trans_prob_long, v_function_long
 
     evacuum = efermi + photo_work_function
     allocate (field_energy(nbands, nspins, num_kpoints_on_node(my_node_id)), stat=ierr)
@@ -1877,7 +1877,7 @@ contains
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of enery failed')
     temp_emission = 0.0_dp
 
-    b_factor = (16.0_dp*(pi**2)*sqrt(2.0_dp))/3.0_d
+    b_factor = (16.0_dp*(pi**2)*sqrt(2.0_dp))/3.0_dp
     p1 = 0.03270530446
     p2 = 0.009157798739
     p3 = 0.002644272807
