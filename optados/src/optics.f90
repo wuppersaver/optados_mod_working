@@ -592,7 +592,9 @@ contains
 
     use od_constants, only: dp, pi
     use od_jdos_utils, only: E, jdos_nbins
-    use od_parameters, only: optics_intraband, optics_drude_broadening
+    use od_parameters, only: optics_intraband, optics_drude_broadening, iprint
+    use od_comms, only: on_root
+    use od_io, only: stdout
 
     integer :: N_energy
     integer :: N_energy2
@@ -601,6 +603,8 @@ contains
     real(kind=dp) :: energy1
     real(kind=dp) :: energy2
     real(kind=dp) :: dE
+
+    integer :: i,jdos_bin,j
 
     dE = E(2) - E(1)
     if (.not. optics_intraband) then

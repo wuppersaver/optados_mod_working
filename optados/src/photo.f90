@@ -268,8 +268,9 @@ contains
     use od_electronic, only: pdos_orbital, pdos_weights, pdos_mwab, nspins, &
                              num_electrons, efermi, band_energy
     use od_cell, only: num_kpoints_on_node, num_atoms
-    use od_comms, only: my_node_id
-    use od_io, only: io_error
+    use od_comms, only: my_node_id,on_root
+    use od_io, only: io_error,stdout
+    use od_parameters, only: iprint
 
     integer :: N, N_spin, n_eigen, np, ierr, atom, i, j, i_max
 
@@ -346,7 +347,7 @@ contains
                              setup_energy_scale
     use od_comms, only: on_root, my_node_id
     use od_parameters, only: optics_geom, adaptive, linear, fixed, optics_intraband, &
-                             optics_drude_broadening, photo_slab_volume
+                             optics_drude_broadening, photo_slab_volume, iprint
     use od_dos_utils, only: dos_utils_calculate_at_e
     use od_constants, only: epsilon_0, e_charge
 
@@ -355,6 +356,7 @@ contains
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
     integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr, N_energy
+    integer :: jdos_bin,i,s
 
     allocate (absorp_photo(jdos_nbins, max_atoms))
     allocate (reflect_photo(jdos_nbins, max_atoms))
@@ -485,8 +487,8 @@ contains
                              electrons_per_state, band_energy, efermi, foptical_mat
     use od_cell, only: nkpoints, cell_volume, num_kpoints_on_node, cell_get_symmetry, &
                        num_crystal_symmetry_operations, crystal_symmetry_operations, num_atoms
-    use od_parameters, only: optics_geom, optics_qdir, legacy_file_format, scissor_op, devel_flag, photo_photon_energy
-    use od_io, only: io_error
+    use od_parameters, only: optics_geom, optics_qdir, legacy_file_format, scissor_op, devel_flag, photo_photon_energy, iprint
+    use od_io, only: io_error,stdout
     use od_comms, only: my_node_id,on_root
 
     real(kind=dp), dimension(3) :: qdir
@@ -637,7 +639,7 @@ contains
     
     if (iprint > 2 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------- Printing Free OM Weights -------------------------+'
-      write(stdout,'(9999(es15.8))') (((((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2)N2=1,N_geom),N_spin=1, nspins)&
+      write(stdout,'(9999(es15.8))') (((((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1, nspins)&
       ,N=1, num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands+1),n_eigen=1,nbands+1)
     end if
   end subroutine make_foptical_weights
@@ -649,9 +651,9 @@ contains
 
     use od_cell, only: num_atoms, atoms_pos_cart_photo, num_species
     use od_jdos_utils, only: jdos_nbins, E
-    use od_parameters, only: photo_photon_energy, &
-                             jdos_spacing, photo_surface_area
+    use od_parameters, only: photo_photon_energy, jdos_spacing, photo_surface_area, iprint
     use od_io, only: stdout, io_error
+    use od_comms, only: on_root
 
     real(kind=dp), dimension(:), allocatable :: light_path
     real(kind=dp), dimension(:, :), allocatable :: attenuation_layer
@@ -777,9 +779,9 @@ contains
     use od_electronic, only: nbands, nspins, band_energy, efermi
     use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
                        atoms_pos_cart_photo
-    use od_io, only: io_error
-    use od_comms, only: my_node_id
-    use od_parameters, only: photo_imfp_const
+    use od_io, only: io_error, stdout
+    use od_comms, only: my_node_id, on_root
+    use od_parameters, only: photo_imfp_const, iprint
 
     integer :: atom, N, N_spin, n_eigen, ierr
     real(kind=dp) :: x, g2, efermi_scaled, a !(Evacuum-Ef)
@@ -814,8 +816,8 @@ contains
 
     if (iprint > 2 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
-      write(stdout,'(9999(es15.8))') (((electron_esc(n_eigen,N,N_spin,atom),atom=1,max_atoms),N_spin=1,nspins),&
-      N=1,num_kpoints_on_node(my_node_id),n_eigen=1,nbands)
+      write(stdout,'(9999(es15.8))') ((((electron_esc(n_eigen,N,N_spin,atom),atom=1,max_atoms),N_spin=1,nspins),&
+      N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
     end if
 
   end subroutine calc_electron_esc
@@ -929,8 +931,8 @@ contains
     use od_electronic, only: nbands, nspins, band_energy, efermi, &
                              electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
                              elec_read_band_curvature, band_curvature
-    use od_comms, only: my_node_id
-    use od_parameters, only: photo_work_function, photo_photon_energy, photo_temperature, &
+    use od_comms, only: my_node_id, on_root
+    use od_parameters, only: photo_work_function, photo_photon_energy, photo_temperature, iprint,&
                              photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
                              fixed_smearing, photo_e_units, finite_bin_correction, adaptive_smearing, &
                              hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, photo_momentum
@@ -1066,8 +1068,8 @@ contains
     use od_electronic, only: nbands, nspins, band_energy, efermi, &
                              electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
                              elec_read_band_curvature, band_curvature
-    use od_comms, only: my_node_id
-    use od_parameters, only: photo_work_function, photo_photon_energy, &
+    use od_comms, only: my_node_id, on_root
+    use od_parameters, only: photo_work_function, photo_photon_energy, iprint, &
                              photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
                              photo_temperature, photo_e_units, finite_bin_correction, adaptive_smearing, &
                              hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
@@ -1215,13 +1217,14 @@ contains
                              electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
                              elec_read_band_curvature, band_curvature
     use od_comms, only: my_node_id
-    use od_parameters, only: photo_work_function, photo_photon_energy, &
+    use od_parameters, only: photo_work_function, photo_photon_energy, iprint,&
                              photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
                              photo_e_units, finite_bin_correction, adaptive_smearing, &
                              hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
                              photo_temperature, write_photo_matrix
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
+    use od_comms, only: on_root
     use od_io, only: stdout, io_error, seedname, io_file_unit, stdout
     use od_jdos_utils, only: jdos_utils_calculate
     use od_jdos_utils, only: jdos_nbins, E
