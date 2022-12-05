@@ -122,16 +122,16 @@ module od_parameters
   ! Photoemission parameters - V.Chang Nov-2020
   character(len=20), public, save :: photo_model
   character(len=20), public, save :: write_photo_matrix
-  character(len=20), public, save :: momentum
-  logical,           public, save :: angle_resolution
-  character(len=20), public, save :: resolution_type
-  real(kind=dp)    , public, save :: phi_lower
-  real(kind=dp)    , public, save :: phi_upper
-  real(kind=dp)    , public, save :: theta_lower
-  real(kind=dp)    , public, save :: theta_upper
-  real(kind=dp)    , public, save :: photon_energy
+  character(len=20), public, save :: photo_momentum
+  !logical,           public, save :: angle_resolution
+  !character(len=20), public, save :: resolution_type
+  real(kind=dp)    , public, save :: photo_phi_lower
+  real(kind=dp)    , public, save :: photo_phi_upper
+  real(kind=dp)    , public, save :: photo_theta_lower
+  real(kind=dp)    , public, save :: photo_theta_upper
+  real(kind=dp)    , public, save :: photo_photon_energy
   real(kind=dp)    , public, save :: bulk_length
-  real(kind=dp)    , public, save :: temp
+  real(kind=dp)    , public, save :: photo_temperature
   real(kind=dp)    , public, save :: elec_field
   real(kind=dp)    , public, save :: imfp_const
   logical, public, save :: e_units
@@ -434,9 +434,9 @@ contains
 
    ! Photoemission parameters - V.Chang Nov-2020
 
-    momentum = 'crystal'
-    call param_get_keyword('momentum',found,c_value=momentum)
-    if(index(momentum,'kp')==0 .and. index(momentum,'crystal')==0 .and. index(momentum,'operator')==0) &
+    photo_momentum = 'crystal'
+    call param_get_keyword('momentum',found,c_value=photo_momentum)
+    if(index(photo_momentum,'kp')==0 .and. index(photo_momentum,'crystal')==0 .and. index(photo_momentum,'operator')==0) &
          call io_error('Error: value of momentum not recognised in param_read')
 
     write_photo_matrix = 'slab'
@@ -453,21 +453,21 @@ contains
      if(photo .and. .not. found) &
          call io_error('Error: please set workfunction for photoemission calculation')
 
-    theta_lower = 0.0_dp
-    call param_get_keyword('theta_lower',found,r_value=theta_lower)
-    theta_upper = 90.0_dp
-    call param_get_keyword('theta_upper',found,r_value=theta_upper)
-    phi_lower = 0.0_dp
-    call param_get_keyword('phi_lower',found,r_value=phi_lower)
-    phi_upper = 90.0_dp
-    call param_get_keyword('phi_upper',found,r_value=phi_upper)
-     call param_get_keyword('photon_energy',found,r_value=photon_energy)
+    photo_theta_lower = 0.0_dp
+    call param_get_keyword('theta_lower',found,r_value=photo_theta_lower)
+    photo_theta_upper = 90.0_dp
+    call param_get_keyword('theta_upper',found,r_value=photo_theta_upper)
+    photo_phi_lower = 0.0_dp
+    call param_get_keyword('phi_lower',found,r_value=photo_phi_lower)
+    photo_phi_upper = 90.0_dp
+    call param_get_keyword('phi_upper',found,r_value=photo_phi_upper)
+     call param_get_keyword('photon_energy',found,r_value=photo_photon_energy)
      if(photo .and. .not. found) &
          call io_error('Error: please set photon energy for photoemission calculation')
     bulk_length = 10.0_dp
     call param_get_keyword('bulk_length',found,r_value=bulk_length)
-    temp = 298.0_dp
-    call param_get_keyword('temp',found,r_value=temp)
+    photo_temperature = 298.0_dp
+    call param_get_keyword('photo_temperature',found,r_value=photo_temperature)
 
     call param_get_keyword('surface_area',found,r_value=surface_area)
      if(photo .and. .not. found) &
@@ -1609,7 +1609,7 @@ contains
     call comms_bcast(set_efermi_zero, 1)
 
     call comms_bcast(photo_model,len(photo_model))
-    call comms_bcast(momentum,len(momentum))
+    call comms_bcast(photo_momentum,len(photo_momentum))
 
 
 
