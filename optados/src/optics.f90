@@ -637,6 +637,15 @@ contains
       end do
     end do
 
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------------- Printing Epsilon-1 ---------------------------+'
+      if (.not. optics_intraband) then
+        write(stdout,'(9999(es13.5))') (((epsilon(jdos_bin, j, N2, 1),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+      else
+        write(stdout,'(9999(es13.5))') ((((epsilon(jdos_bin, j, N2, i),i=1,3),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+      end if
+    end if
+
   end subroutine calc_epsilon_1
 
   !***************************************************************

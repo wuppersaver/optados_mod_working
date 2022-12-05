@@ -1194,6 +1194,12 @@ contains
       close (unit=matrix_unit)
     end if
 
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------------------- Printing 3step QE Matrix -------------------------+'
+      write(stdout,'(9999(es15.8))') (((((qe_tsm(n_eigen,n_eigen2,N,N_spin,atom),atom=1,max_atoms+1),N_spin=1,nspins),&
+      N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+    end if
+
   end subroutine calc_three_step_model
 
   !===============================================================================
@@ -1324,6 +1330,12 @@ contains
       end do
 
       close (unit=matrix_unit)
+    end if
+
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------------------- Printing 1step QE Matrix -------------------------+'
+      write(stdout,'(9999(es15.8))') ((((qe_osm(n_eigen,N,N_spin,atom),atom=1,max_atoms+1),N_spin=1,nspins),&
+      N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
     end if
 
     if (allocated(foptical_matrix_weights)) then
