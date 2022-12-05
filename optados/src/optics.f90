@@ -504,7 +504,9 @@ contains
     use od_cell, only: nkpoints, cell_volume
     use od_electronic, only: nspins, electrons_per_state, nbands
     use od_jdos_utils, only: E, jdos_nbins
-    use od_parameters, only: optics_intraband, optics_drude_broadening
+    use od_parameters, only: optics_intraband, optics_drude_broadening, iprint
+    use od_io, only: stdout
+    use od_comms, only: on_root
 
     real(kind=dp), intent(in), allocatable, dimension(:, :, :) :: weighted_jdos
     real(kind=dp), intent(in), allocatable, dimension(:, :) :: weighted_dos_at_e
@@ -513,6 +515,8 @@ contains
     integer :: N
     integer :: N_spin
     integer :: N2
+    integer :: jdos_bin
+    integer :: i,j
 
     real(kind=dp) ::dE
     real(kind=dp) :: x
@@ -568,6 +572,15 @@ contains
         end if
       end do
       N_eff = (x*e_mass*cell_volume*1E-30*epsilon_0*2)/(pi)
+    end if
+    
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------------- Printing Epsilon-2 ---------------------------+'
+      if (.not. optics_intraband) then
+        write(stdout,'(9999(es13.5))') (((epsilon(jdos_bin, j, N2, 1),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+      else
+        write(stdout,'(9999(es13.5))') ((((epsilon(jdos_bin, j, N2, i),i=1,3),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+      end if
     end if
 
   end subroutine calc_epsilon_2

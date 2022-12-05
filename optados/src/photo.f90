@@ -258,12 +258,12 @@ contains
         atoms_per_layer(layer(atom)) = atoms_per_layer(layer(atom)) + 1
       end if
     end do
-
+      
   end subroutine calc_layers
 
   !***************************************************************
   subroutine make_pdos_weights_atoms
-    !***************************************************************
+  !***************************************************************
     !This subroutine is equivalent to pdos_merge of pdos.F90, but only for atoms
     use od_electronic, only: pdos_orbital, pdos_weights, pdos_mwab, nspins, &
                              num_electrons, efermi, band_energy
@@ -271,7 +271,7 @@ contains
     use od_comms, only: my_node_id
     use od_io, only: io_error
 
-    integer :: N, N_spin, n_eigen, np, ierr, atom, i, j
+    integer :: N, N_spin, n_eigen, np, ierr, atom, i, j, i_max
 
     allocate (pdos_weights_atoms(num_atoms, pdos_mwab%nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
     if (ierr /= 0) call io_error('Error: make_pdos_weights_atoms - allocation of pdos_weights_atoms failed')
@@ -302,6 +302,7 @@ contains
         end do
       end do
     end do
+    i_max = i
 
     do N = 1, num_kpoints_on_node(my_node_id)
       do N_spin = 1, nspins
@@ -317,6 +318,14 @@ contains
       end do
     end do
 
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------------------ Printing pDOS_weights_atoms -----------------------+'
+      write(stdout,'(999(es15.8))') ((((pdos_weights_atoms(i, n_eigen, N, N_spin),N_spin=1,nspins)&
+        ,N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands),i=1,i_max)
+      write (stdout, '(1x,a78)') '+----------------------- Printing pDOS_weights_k_band -----------------------+'
+      write(stdout,'(999(es15.8))') (((pdos_weights_k_band(n_eigen, N, N_spin)&
+        ,N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands)
+    end if
   end subroutine make_pdos_weights_atoms
 
   !***************************************************************
@@ -351,11 +360,21 @@ contains
     allocate (reflect_photo(jdos_nbins, max_atoms))
 
     call make_weights(matrix_weights)
-
+    
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
+      write(stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
+      ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+    end if
+    
     do atom = 1, max_atoms                           ! Loop over atoms
-
+      
+      if (iprint > 2 .and. on_root) then
+        write (stdout, '(a38,I3,a38)') '+--------------------------------Atom-', atom ,'------------------------------------+'
+      end if
+        
       allocate (projected_matrix_weights(nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
-      if (ierr /= 0) call io_error('Error: make_photo_weights - allocation of matrix_weights failed')
+      if (ierr /= 0) call io_error('Error: make_photo_weights - allocation of projected matrix_weights failed')
 
       projected_matrix_weights = 0.0_dp
       do N2 = 1, N_geom
@@ -374,8 +393,20 @@ contains
         end do                                    ! Loop over kpoints
       end do
 
+      if (iprint > 2 .and. on_root) then
+        write (stdout, '(1x,a78)') '+--------------------- Printing Projected Matrix Weights --------------------+'
+        write (stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
+        ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+      end if
+
       ! Send matrix element to jDOS routine and get weighted jDOS back
       call jdos_utils_calculate(projected_matrix_weights, weighted_jdos)
+      
+      if (iprint > 2 .and. on_root) then
+        write (stdout, '(1x,a78)') '+------------------------ Printing Weighted Joint-DOS -----------------------+'
+        write(stdout,'(9999(es15.8))') (((weighted_jdos(jdos_bin, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
+        ,jdos_bin=1,jdos_nbins)
+      end if
 
       if (allocated(projected_matrix_weights)) then
         deallocate (projected_matrix_weights, stat=ierr)
@@ -393,6 +424,18 @@ contains
           end do
         end do
         call dos_utils_calculate_at_e(efermi, dos_at_e, dos_matrix_weights, weighted_dos_at_e)
+
+        if (iprint > 2 .and. on_root) then
+          write (stdout, '(a36,f8.4,a34)') '+------------------------ E_Fermi = ',efermi,'---------------------------------+'
+          write (stdout, '(1x,a78)') '+------------------------ Printing DOS Matrix Weights -----------------------+'
+          write(stdout,'(9999(es15.8))') ((((dos_matrix_weights(n_eigen, n_eigen2, N, s),s=1,nspins),N=1,&
+          num_kpoints_on_node(my_node_id)),n_eigen2=1, nbands),n_eigen=1,size(matrix_weights, 5))
+          write (stdout, '(1x,a78)') '+--------------------------- Printing DOS @ Energy --------------------------+'
+          write(stdout,'(9(es15.8))') ((dos_at_e(i,s),i=1,3),s=1,nspins)
+          write (stdout, '(1x,a78)') '+----------------------- Printing Weighted DOS @ Energy ---------------------+'
+          write(stdout,'(9999(es15.8))') ((weighted_dos_at_e(s,n_eigen),s=1,nspins),n_eigen=1,size(matrix_weights, 5))
+        end if
+
       end if
 
       if (on_root) then
@@ -444,7 +487,7 @@ contains
                        num_crystal_symmetry_operations, crystal_symmetry_operations, num_atoms
     use od_parameters, only: optics_geom, optics_qdir, legacy_file_format, scissor_op, devel_flag, photo_photon_energy
     use od_io, only: io_error
-    use od_comms, only: my_node_id
+    use od_comms, only: my_node_id,on_root
 
     real(kind=dp), dimension(3) :: qdir
     real(kind=dp), dimension(3) :: qdir1
@@ -591,7 +634,12 @@ contains
         end do       ! Loop over state 1
       end do           ! Loop over spins
     end do               ! Loop over kpoints
-
+    
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------------------- Printing Free OM Weights -------------------------+'
+      write(stdout,'(9999(es15.8))') (((((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2)N2=1,N_geom),N_spin=1, nspins)&
+      ,N=1, num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands+1),n_eigen=1,nbands+1)
+    end if
   end subroutine make_foptical_weights
 
   !***************************************************************
@@ -610,6 +658,7 @@ contains
     real(kind=dp) :: transmittance
     integer :: atom, i, N_energy, ierr, first_atom_second_l, last_atom_secondlast_l
     real(kind=dp) :: I_0
+    integer :: jdos_bin, num_layer
 
     allocate (thickness_atom(max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of thickness_atom failed')
@@ -711,6 +760,11 @@ contains
       deallocate (attenuation_layer, stat=ierr)
       if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate attenuation_layer')
     end if
+    
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
+      write(stdout,'(9999(es15.8))') ((I_layer(jdos_bin, num_layer),jdos_bin=1,jdos_nbins),num_layer=1,max_layer)
+    end if
 
   end subroutine calc_absorp_layer
 
@@ -757,6 +811,13 @@ contains
         end do
       end do
     end do
+
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
+      write(stdout,'(9999(es15.8))') (((electron_esc(n_eigen,N,N_spin,atom),atom=1,max_atoms),N_spin=1,nspins),&
+      N=1,num_kpoints_on_node(my_node_id),n_eigen=1,nbands)
+    end if
+
   end subroutine calc_electron_esc
 
   !***************************************************************
@@ -982,6 +1043,14 @@ contains
       deallocate (kpoint_r_cart, stat=ierr)
       if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate kpoint_r_cart')
     end if
+
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------------------ Printing Transverse Energy ------------------------+'
+      write(stdout,'(9999(es15.8))') (((E_transverse(n_eigen,N,N_spin),N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),&
+      n_eigen=1,nbands)
+    end if
+
+    
 
   end subroutine calc_angle
 
