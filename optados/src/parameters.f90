@@ -98,7 +98,7 @@ module od_parameters
   integer, allocatable, public, save :: exclude_bands(:)
 
   integer, public, save :: num_exclude_bands    ! this is set by param_write
-
+photo_temperature
   ! Optics parameters
   character(len=20), public, save :: optics_geom
   real(kind=dp), public, save :: optics_qdir(3)
@@ -119,7 +119,7 @@ module od_parameters
   real(kind=dp), public, save :: LAI_lorentzian_offset
   logical, public, save :: LAI_lorentzian
 
-  ! Photoemission parameters - V.Chang Nov-2020
+  ! Photoemission parameters - V.Chang, et al. Dec-2022
   character(len=20), public, save :: photo_model
   character(len=20), public, save :: write_photo_matrix
   character(len=20), public, save :: photo_momentum
@@ -132,13 +132,13 @@ module od_parameters
   real(kind=dp)    , public, save :: photo_photon_energy
   real(kind=dp)    , public, save :: bulk_length
   real(kind=dp)    , public, save :: photo_temperature
-  real(kind=dp)    , public, save :: elec_field
-  real(kind=dp)    , public, save :: imfp_const
-  logical, public, save :: e_units
-  logical, public, save :: mte
-  real(kind=dp),     public, save :: work_function
-  real(kind=dp),     public, save :: surface_area
-  real(kind=dp),     public, save :: slab_volume 
+  real(kind=dp)    , public, save :: photo_elec_field
+  real(kind=dp)    , public, save :: photo_imfp_const
+  logical, public, save :: photo_e_units
+  !logical, public, save :: photo_mte
+  real(kind=dp),     public, save :: photo_work_function
+  real(kind=dp),     public, save :: photo_surface_area
+  real(kind=dp),     public, save :: photo_slab_volume 
   
 
   real(kind=dp), public, save :: lenconfac
@@ -449,7 +449,7 @@ contains
     if(index(photo_model,'3step')==0 .and. index(photo_model,'1step')==0 ) &
          call io_error('Error: value of photoemission model not recognised in param_read')
 
-    call param_get_keyword('work_function',found,r_value=work_function)
+    call param_get_keyword('photo_work_function',found,r_value=photo_work_function)
      if(photo .and. .not. found) &
          call io_error('Error: please set workfunction for photoemission calculation')
 
@@ -469,21 +469,21 @@ contains
     photo_temperature = 298.0_dp
     call param_get_keyword('photo_temperature',found,r_value=photo_temperature)
 
-    call param_get_keyword('surface_area',found,r_value=surface_area)
+    call param_get_keyword('photo_surface_area',found,r_value=photo_surface_area)
      if(photo .and. .not. found) &
          call io_error('Error: please set surface area for photoemission calculation')
 
-    call param_get_keyword('slab_volume',found,r_value=slab_volume)
+    call param_get_keyword('photo_slab_volume',found,r_value=photo_slab_volume)
      if(photo .and. .not. found) &
          call io_error('Error: please set volume of the slab for photoemission calculation')
 
-    elec_field          = 0.00_dp
-    call param_get_keyword('elec_field',found,r_value=elec_field)
+    photo_elec_field          = 0.00_dp
+    call param_get_keyword('photo_elec_field',found,r_value=photo_elec_field)
 
-    imfp_const=0.0_dp
-    call param_get_keyword('imfp_const',found,r_value=imfp_const)
+    photo_imfp_const=0.0_dp
+    call param_get_keyword('photo_imfp_const',found,r_value=photo_imfp_const)
      if(photo .and. .not. found) &
-         call io_error('Error: constant imfp, but imfp_const is not set')
+         call io_error('Error: constant imfp, but photo_imfp_const is not set')
 
     num_atoms = 0
     num_species = 0

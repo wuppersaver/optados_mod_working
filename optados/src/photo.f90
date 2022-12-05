@@ -101,8 +101,8 @@ contains
     use od_jdos_utils, only: jdos_utils_calculate, setup_energy_scale
     use od_comms, only: on_root, my_node_id
     use od_parameters, only: optics_geom, adaptive, linear, fixed, optics_intraband, &
-                             optics_drude_broadening, work_function, photo_model, &
-                             elec_field
+                             optics_drude_broadening, photo_work_function, photo_model, &
+                             photo_elec_field
     use od_dos_utils, only: dos_utils_set_efermi, dos_utils_calculate_at_e
     use od_io, only: stdout, io_error
     use od_pdos, only: pdos_calculate
@@ -142,11 +142,11 @@ contains
     call bulk_emission
 
     !Electric field and field emission
-    if (elec_field .gt. 0.0_dp) then
+    if (photo_elec_field .gt. 0.0_dp) then
       call effect_wf
     else
-      evacuum_eff = efermi + work_function
-      work_function_eff = work_function
+      evacuum_eff = efermi + photo_work_function
+      work_function_eff = photo_work_function
     end if
 
     !Calculate the QE
@@ -337,7 +337,7 @@ contains
                              setup_energy_scale
     use od_comms, only: on_root, my_node_id
     use od_parameters, only: optics_geom, adaptive, linear, fixed, optics_intraband, &
-                             optics_drude_broadening, slab_volume
+                             optics_drude_broadening, photo_slab_volume
     use od_dos_utils, only: dos_utils_calculate_at_e
     use od_constants, only: epsilon_0, e_charge
 
@@ -602,7 +602,7 @@ contains
     use od_cell, only: num_atoms, atoms_pos_cart_photo, num_species
     use od_jdos_utils, only: jdos_nbins, E
     use od_parameters, only: photo_photon_energy, &
-                             jdos_spacing, surface_area
+                             jdos_spacing, photo_surface_area
     use od_io, only: stdout, io_error
 
     real(kind=dp), dimension(:), allocatable :: light_path
@@ -869,9 +869,9 @@ contains
                              electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
                              elec_read_band_curvature, band_curvature
     use od_comms, only: my_node_id
-    use od_parameters, only: work_function, photo_photon_energy, photo_temperature, &
-                             elec_field, surface_area, jdos_spacing, scissor_op, &
-                             fixed_smearing, e_units, finite_bin_correction, adaptive_smearing, &
+    use od_parameters, only: photo_work_function, photo_photon_energy, photo_temperature, &
+                             photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
+                             fixed_smearing, photo_e_units, finite_bin_correction, adaptive_smearing, &
                              hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, photo_momentum
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
@@ -998,9 +998,9 @@ contains
                              electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
                              elec_read_band_curvature, band_curvature
     use od_comms, only: my_node_id
-    use od_parameters, only: work_function, photo_photon_energy, &
-                             elec_field, surface_area, jdos_spacing, scissor_op, &
-                             photo_temperature, e_units, finite_bin_correction, adaptive_smearing, &
+    use od_parameters, only: photo_work_function, photo_photon_energy, &
+                             photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
+                             photo_temperature, photo_e_units, finite_bin_correction, adaptive_smearing, &
                              hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
                              write_photo_matrix
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
@@ -1019,7 +1019,7 @@ contains
     integer :: matrix_unit
 
     width = (1.0_dp/11604.45_dp)*photo_temperature
-    qe_factor = 1.0_dp/(2*pi*surface_area)
+    qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
 
     N_energy = photo_photon_energy/jdos_spacing
@@ -1043,7 +1043,7 @@ contains
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of enery failed')
     field_emission = 0.0_dp
 
-    if (elec_field .gt. 0.0_dp) then
+    if (photo_elec_field .gt. 0.0_dp) then
       call calc_field_emission
     end if
 
@@ -1140,9 +1140,9 @@ contains
                              electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
                              elec_read_band_curvature, band_curvature
     use od_comms, only: my_node_id
-    use od_parameters, only: work_function, photo_photon_energy, &
-                             elec_field, surface_area, jdos_spacing, scissor_op, &
-                             e_units, finite_bin_correction, adaptive_smearing, &
+    use od_parameters, only: photo_work_function, photo_photon_energy, &
+                             photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
+                             photo_e_units, finite_bin_correction, adaptive_smearing, &
                              hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
                              photo_temperature, write_photo_matrix
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
@@ -1161,7 +1161,7 @@ contains
     logical :: fixed
 
     width = (1.0_dp/11604.45_dp)*photo_temperature
-    qe_factor = 1.0_dp/(2*pi*surface_area)
+    qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
 
     N_energy = photo_photon_energy/jdos_spacing
@@ -1190,7 +1190,7 @@ contains
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of enery failed')
     field_emission = 0.0_dp
 
-    if (elec_field .gt. 0.0_dp) then
+    if (photo_elec_field .gt. 0.0_dp) then
       call calc_field_emission
     end if
 
@@ -1471,8 +1471,8 @@ contains
                              electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
                              elec_read_band_curvature, band_curvature
     use od_comms, only: my_node_id
-    use od_parameters, only: work_function, photo_photon_energy, &
-                             elec_field, photo_model, exclude_bands, num_exclude_bands
+    use od_parameters, only: photo_work_function, photo_photon_energy, &
+                             photo_elec_field, photo_model, exclude_bands, num_exclude_bands
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
     use od_io, only: stdout, io_error, seedname, io_file_unit, stdout
@@ -1551,10 +1551,10 @@ contains
     if (index(photo_model, '3step') > 0) then
       write (stdout, '(1x,a78)') '+---------------------------- Photoemission ---------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
-      write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a6)') '| Work Function', work_function, &
+      write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a6)') '| Work Function', photo_work_function, &
         'eV          Photon Energy', photo_photon_energy, 'eV   |'
       write (stdout, '(a26,f10.4,1x,a26,f10.4,a6)') '| Effective Work Function', work_function_eff, &
-        ' eV        Electric field', elec_field, 'V/A  |'
+        ' eV        Electric field', photo_elec_field, 'V/A  |'
       write (stdout, '(1x,a78)') '| Final state : Bloch state                                                  |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
@@ -1574,10 +1574,10 @@ contains
     if (index(photo_model, '1step') > 0) then
       write (stdout, '(1x,a78)') '+---------------------------- Photoemission ---------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
-      write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a5)') '| Work Function', work_function, &
+      write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a5)') '| Work Function', photo_work_function, &
         'eV          PhotonEnergy', photo_photon_energy, 'eV  |'
       write (stdout, '(a26,f10.4,1x,a26,f10.4,a6)') '| Effective Work Function', work_function_eff, &
-        ' eV        Electric field', elec_field, 'V/A  |'
+        ' eV        Electric field', photo_elec_field, 'V/A  |'
       write (stdout, '(1x,a78)') '| Final state : Free electron state                                          |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
@@ -1595,7 +1595,7 @@ contains
 
     end if
     write (stdout, *) '|  Weighted mean transverse energy (eV):', mean_te, '          |'
-    if (elec_field .gt. 0.0_dp) then
+    if (photo_elec_field .gt. 0.0_dp) then
       write (stdout, *) '|  Total field emission (electrons/A^2):', total_field_emission, '          |'
     end if
     write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
@@ -1609,7 +1609,7 @@ contains
 
     use od_cell, only: num_kpoints_on_node, cell_calc_kpoint_r_cart, kpoint_r_cart
     use od_electronic, only: nbands, nspins, band_energy, efermi
-    use od_parameters, only: work_function, photo_photon_energy, fixed_smearing, &
+    use od_parameters, only: photo_work_function, photo_photon_energy, fixed_smearing, &
                              photo_model, photo_theta_lower, photo_theta_upper, photo_phi_lower, photo_phi_upper
     use od_algorithms, only: gaussian
     use od_comms, only: my_node_id
@@ -1624,7 +1624,7 @@ contains
 
     integer :: test_unit
 
-    max_energy = int((photo_photon_energy - work_function)*1000) + 100
+    max_energy = int((photo_photon_energy - photo_work_function)*1000) + 100
 
     if (allocated(E_transverse)) then
       deallocate (E_transverse, stat=ierr)
@@ -1821,21 +1821,21 @@ contains
   !***************************************************************
   subroutine effect_wf
     !***************************************************************
-    !elec_field given in eV/A
+    !photo_elec_field given in eV/A
 
-    use od_parameters, only: work_function, elec_field
+    use od_parameters, only: photo_work_function, photo_elec_field
     use od_electronic, only: efermi
     use od_constants, only: pi, epsilon_zero
 
     !  real(kind=dp) :: z
 
-    !  z=sqrt((1/(16*pi*epsilon_zero*1E-4))/elec_field)
+    !  z=sqrt((1/(16*pi*epsilon_zero*1E-4))/photo_elec_field)
 
-    !  work_function_eff = work_function - elec_field*z -(1/(16*pi*epsilon_zero*1E-4))/z
+    !  work_function_eff = photo_work_function - photo_elec_field*z -(1/(16*pi*epsilon_zero*1E-4))/z
 
     !  evacuum_eff = work_function_eff + efermi
 
-    work_function_eff = work_function - sqrt(elec_field/(4*pi*epsilon_zero*1E-4))
+    work_function_eff = photo_work_function - sqrt(photo_elec_field/(4*pi*epsilon_zero*1E-4))
 
     evacuum_eff = work_function_eff + efermi
 
@@ -1845,10 +1845,10 @@ contains
   subroutine calc_field_emission
     !***************************************************************
     ! This subroutine calculates the Schottky effect
-    !elec_field given in V/m
+    !photo_elec_field given in V/m
 
     use od_cell, only: num_kpoints_on_node
-    use od_parameters, only: work_function, elec_field, photo_temperature, surface_area
+    use od_parameters, only: photo_work_function, photo_elec_field, photo_temperature, photo_surface_area
     use od_electronic, only: efermi, band_energy, nbands, nspins
     use od_io, only: stdout, io_error
     use od_comms, only: my_node_id
@@ -1866,7 +1866,7 @@ contains
     real(kind=dp) :: l_prime, v_function, b_factor, transmission_prob, band_eff
     real(kind=dp) :: p1, p2, p3, p4, q1, q2, q3, q4, p_term, q_term, trans_prob_long, v_func_long
 
-    evacuum = efermi + work_function
+    evacuum = efermi + photo_work_function
     allocate (field_energy(nbands, nspins, num_kpoints_on_node(my_node_id)), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of enery failed')
     field_energy = 0.0_dp
@@ -1890,24 +1890,24 @@ contains
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
-          barrier_height = work_function - (band_energy(n_eigen, N_spin, N) - efermi)
+          barrier_height = photo_work_function - (band_energy(n_eigen, N_spin, N) - efermi)
           band_eff = (band_energy(n_eigen, N_spin, N) - efermi)
           fermi_dirac = 1.0_dp/(exp((band_eff/(kB*photo_temperature))) + 1.0_dp)
           field_energy(n_eigen, N_spin, N) = abs(evacuum - band_energy(n_eigen, N_spin, N))
 
-          if ((elec_field/(4*pi*epsilon_zero*1E-4)*elec_field) .lt. (field_energy(n_eigen, N_spin, N)**2)) then
+          if ((photo_elec_field/(4*pi*epsilon_zero*1E-4)*photo_elec_field) .lt. (field_energy(n_eigen, N_spin, N)**2)) then
             if (barrier_height .le. 0.0) then
               field_emission(n_eigen, N_spin, N) = 1.0_dp
             else
-              l_prime = (e_charge/4*pi*epsilon_zero*1E-4)*elec_field*(1/barrier_height**2)
+              l_prime = (e_charge/4*pi*epsilon_zero*1E-4)*photo_elec_field*(1/barrier_height**2)
               p_term = 1.0_dp + (p1*l_prime) + (p2*l_prime**2) + (p3*l_prime**3) + (p4*l_prime**4)
               q_term = q1 + (q2*l_prime) + (q3*l_prime**2) + (q4*l_prime**3)
               v_function_long = (1 - l_prime)*p_term + q_term*l_prime*log(l_prime)
               
               ! v_function = 1 - l_prime + (1.0_dp/6.0_dp)*l_prime*log(l_prime)
-              ! transmission_prob = 1.0_dp/exp(v_function*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/elec_field))
+              ! transmission_prob = 1.0_dp/exp(v_function*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/photo_elec_field))
               
-              trans_prob_long = exp(-1.0_dp*v_function_long*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/elec_field))
+              trans_prob_long = exp(-1.0_dp*v_function_long*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/photo_elec_field))
               field_emission(n_eigen, N_spin, N) = trans_prob_long
             end if
           end if
@@ -1917,7 +1917,7 @@ contains
     end do
 
     total_field_emission = sum(temp_emission(1:nbands, 1:nspins, 1:num_kpoints_on_node(my_node_id)))/ &
-                           surface_area
+                           photo_surface_area
 
     if (allocated(field_energy)) then
       deallocate (field_energy, stat=ierr)
