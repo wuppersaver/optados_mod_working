@@ -319,7 +319,7 @@ contains
       end do
     end do
 
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------ Printing pDOS_weights_atoms -----------------------+'
       write (stdout, 125) shape(pdos_weights_atoms)
       write (stdout, 125) i_max, pdos_mwab%nbands , num_kpoints_on_node(my_node_id) , nspins
@@ -377,7 +377,7 @@ contains
       N_geom = 6
     end if
 
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
       write (stdout,126) shape(matrix_weights)
       write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
@@ -409,7 +409,7 @@ contains
         end do                                    ! Loop over kpoints
       end do
 
-      if (iprint > 2 .and. on_root) then
+      if (iprint > 3 .and. on_root) then
         write (stdout, '(1x,a37,I3,a38)') '+-------------------------------Atom-', atom ,'-------------------------------------+'
         write (stdout, '(1x,a78)') '+--------------------- Printing Projected Matrix Weights --------------------+'
         write (stdout, 126) shape(projected_matrix_weights)
@@ -422,7 +422,7 @@ contains
       ! Send matrix element to jDOS routine and get weighted jDOS back
       call jdos_utils_calculate(projected_matrix_weights, weighted_jdos)
       
-      if (iprint > 2 .and. on_root) then
+      if (iprint > 3 .and. on_root) then
         write (stdout, '(1x,a78)') '+------------------------ Printing Weighted Joint-DOS -----------------------+'
         write (stdout, 124) shape(weighted_jdos)
         write (stdout, 124) jdos_nbins, nspins, N_geom
@@ -448,7 +448,7 @@ contains
         end do
         call dos_utils_calculate_at_e(efermi, dos_at_e, dos_matrix_weights, weighted_dos_at_e)
 
-        if (iprint > 2 .and. on_root) then
+        if (iprint > 3 .and. on_root) then
           write (stdout, '(1x,a36,f8.4,a34)') '+------------------------ E_Fermi = ',efermi,'---------------------------------+'
           write (stdout, '(1x,a78)') '+------------------------ Printing DOS Matrix Weights -----------------------+'
           write (stdout, 125) shape(dos_matrix_weights)
@@ -661,13 +661,19 @@ contains
       end do           ! Loop over spins
     end do               ! Loop over kpoints
     
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------- Printing Free OM Weights -------------------------+'
       write (stdout, 126) shape(foptical_matrix_weights)
-      write (stdout, 126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
+      write (stdout, 126) nbands+1, nbands+1, num_kpoints_on_node(my_node_id), nspins, N_geom
       126 format(1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x)
-      write(stdout,'(9999(es15.8))') (((((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1, nspins)&
-      ,N=1, num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands+1),n_eigen=1,nbands+1)
+      do N2=1,N_geom
+        do N_spin=1, nspins
+          do N=1, num_kpoints_on_node(my_node_id)
+            write(stdout,'(99999(es15.8))') ((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2)n_eigen2=1,nbands+1),&
+            n_eigen=1,nbands+1)
+          end do
+        end do
+      end do
     end if
   end subroutine make_foptical_weights
 
@@ -790,7 +796,7 @@ contains
       if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate attenuation_layer')
     end if
     
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
       write (stdout, '(1x,I3,1x,I3,1x)') jdos_nbins, max_layer
       write(stdout,'(9999(es15.8))') ((I_layer(jdos_bin, num_layer),jdos_bin=1,jdos_nbins),num_layer=1,max_layer)
@@ -842,7 +848,7 @@ contains
       end do
     end do
 
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------- Printing P(Escape) per Layer -----------------------+'
       write (stdout, 125) shape(electron_esc)
       write (stdout, 125) nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms
@@ -1077,7 +1083,7 @@ contains
       if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate kpoint_r_cart')
     end if
 
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------ Printing Transverse Energy ------------------------+'
       write (stdout,'(1x,I3,1x,I3,1x,I3,1x)') shape(E_transverse)
       write (stdout,'(1x,I3,1x,I3,1x,I3,1x)') nbands, num_kpoints_on_node(my_node_id), nspins 
@@ -1155,15 +1161,31 @@ contains
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of qe_numerator failed')
     qe_tsm = 0.0_dp
 
-    if (iprint > 2 .and. on_root) then
-      write (stdout, '(1x,a78)') '+------------------- Printing Matrix Weights in QE Function -----------------+'
+    if (iprint > 3 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------- Printing Matrix Weights in 3Step Function ----------------+'
       write (stdout,126) shape(matrix_weights)
       write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
-      write(stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
-      ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+      do N2=1,N_geom
+        do N_spin=1,nspins
+          do N=1,num_kpoints_on_node(my_node_id)
+            write(stdout,'(99999(es15.8))') ((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),n_eigen2=1,nbands),n_eigen=1,nbands)
+          end do
+        end do
+      end do
     end if
 
     call jdos_utils_calculate_delta(delta_temp)
+    
+    if (iprint > 3 .and. on_root) then
+      write (stdout, '(1x,a78)') '+---------------------- Printing Delta Function Values ----------------------+'
+      write (stdout,126) shape(delta_temp)
+      write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins
+      do N_spin=1,nspins
+        do N=1, num_kpoints_on_node(my_node_id)
+          ((delta_temp(nbands, nbands, num_kpoints_on_node(my_node_id), nspins),neigen_2=1,nbands),neigen=1,nbands)
+        end do
+      end do
+    end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
@@ -1237,13 +1259,18 @@ contains
       close (unit=matrix_unit)
     end if
 
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------- Printing 3step QE Matrix -------------------------+'
       write (stdout, 126) shape(qe_tsm)
       write (stdout, 126) nbands, nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
       126 format(1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x)
-      write(stdout,'(9999(es15.8))') (((((qe_tsm(n_eigen,n_eigen2,N,N_spin,atom),atom=1,max_atoms+1),N_spin=1,nspins),&
-      N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+      do atom=1,max_atoms+1
+        do N_spin=1,nspins
+          do N=1,num_kpoints_on_node(my_node_id)
+            write(stdout,'(99999(es15.8))') ((qe_tsm(n_eigen,n_eigen2,N,N_spin,atom),n_eigen2=1,nbands),n_eigen=1,nbands)
+          end do
+        end do
+      end do
     end if
 
   end subroutine calc_three_step_model
@@ -1344,8 +1371,7 @@ contains
                (electron_esc(n_eigen, N, N_spin, atom))* &
                electrons_per_state*kpoint_weight(N)* &
                (I_layer(N_energy, layer(atom)))* &
-               qe_factor* &
-               transverse_g*vac_g*fermi_dirac* &
+               qe_factor*transverse_g*vac_g*fermi_dirac* &
                (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                 pdos_weights_k_band(n_eigen, N, N_spin)))* &
               (1 + field_emission(n_eigen, N_spin, N))
@@ -1379,11 +1405,18 @@ contains
       close (unit=matrix_unit)
     end if
 
-    if (iprint > 2 .and. on_root) then
+    if (iprint > 3 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------- Printing 1step QE Matrix -------------------------+'
       write (stdout, 125) shape(qe_osm) 
       write (stdout, 125) nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms+1
       125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x) 
+      do atom=1,max_atoms+1
+        do N_spin=1,nspins
+          do N=1,num_kpoints_on_node(my_node_id)
+            write(stdout,'(9999(es15.8))') ((qe_tsm(n_eigen,n_eigen2,N,N_spin,atom),n_eigen2=1,nbands),n_eigen=1,nbands)
+          end do
+        end do
+      end do
       write(stdout,'(9999(es15.8))') ((((qe_osm(n_eigen,N,N_spin,atom),atom=1,max_atoms+1),N_spin=1,nspins),&
       N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
     end if
