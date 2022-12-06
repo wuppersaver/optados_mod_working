@@ -361,7 +361,6 @@ contains
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
-    real(kind=dp), allocatable, dimension(:,:,:,:,:) :: matrix_weights
 
     integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr, N_energy
     integer :: jdos_bin,i,s
@@ -371,6 +370,13 @@ contains
 
     call make_weights(matrix_weights)
     
+    !! Taken from optics.f90 because N_geom is redefined here and has to be re-initialised !!
+    if (.not. index(optics_geom, 'tensor') > 0) then ! I can rewrite this in a simplier way??
+      N_geom = 1
+    elseif (index(optics_geom, 'tensor') > 0) then
+      N_geom = 6
+    end if
+
     if (iprint > 2 .and. on_root) then
       write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
       write (stdout,126) shape(matrix_weights)
