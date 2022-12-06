@@ -373,9 +373,8 @@ contains
     
     if (iprint > 2 .and. on_root) then
       write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
-      write (stdout,125) shape(matrix_weights)
-      write (stdout,125) nbands, nbands, num_kpoints_on_node(my_node_id), nspins
-      125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
+      write (stdout,126) shape(matrix_weights)
+      write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
       write(stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
       ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
     end if
@@ -447,7 +446,8 @@ contains
           write (stdout, '(1x,a36,f8.4,a34)') '+------------------------ E_Fermi = ',efermi,'---------------------------------+'
           write (stdout, '(1x,a78)') '+------------------------ Printing DOS Matrix Weights -----------------------+'
           write (stdout, 125) shape(dos_matrix_weights)
-          write (stdout, 125) size(matrix_weights,5), nbands, num_kpoints_on_node(my_node_id), nspins 
+          write (stdout, 125) size(matrix_weights,5), nbands, num_kpoints_on_node(my_node_id), nspins
+          125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x) 
           write(stdout,'(9999(es15.8))') ((((dos_matrix_weights(n_eigen, n_eigen2, N, s),s=1,nspins),N=1,&
           num_kpoints_on_node(my_node_id)),n_eigen2=1, nbands),n_eigen=1,size(matrix_weights, 5))
           write (stdout, '(1x,a78)') '+--------------------------- Printing DOS @ Energy --------------------------+'
@@ -1108,7 +1108,7 @@ contains
     use od_jdos_utils, only: jdos_nbins, E
     use od_constants, only: pi, kB
 
-    integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
+    integer :: N,N2 , N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
     integer :: angle, N_energy
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
@@ -1151,9 +1151,8 @@ contains
 
     if (iprint > 2 .and. on_root) then
       write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
-      write (stdout,125) shape(matrix_weights)
-      write (stdout,125) nbands, nbands, num_kpoints_on_node(my_node_id), nspins
-      125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
+      write (stdout,126) shape(matrix_weights)
+      write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
       write(stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
       ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
     end if
