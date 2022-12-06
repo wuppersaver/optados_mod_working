@@ -1156,7 +1156,7 @@ contains
     qe_tsm = 0.0_dp
 
     if (iprint > 2 .and. on_root) then
-      write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
+      write (stdout, '(1x,a78)') '+------------------- Printing Matrix Weights in QE Function -----------------+'
       write (stdout,126) shape(matrix_weights)
       write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
       write(stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
