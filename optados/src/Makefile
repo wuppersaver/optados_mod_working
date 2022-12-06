@@ -7,6 +7,7 @@ include ../make.system
 # T H I N G S   Y O U   S H O U L D
 # P R O B A B L Y   L E A V E   T O   T H E
 # D E V E L O P E R S
+EXTENSION:=.x
 
 ifeq ($(BUILD), debug)
   FFLAGS+=$(FFLAGS_DEBUG)
@@ -25,7 +26,7 @@ else
 endif
 
 #EXTENSION:=$(EXTENSION)$(EXE_SUFFIX)
-EXTENSION:=.x
+
 
 # Put object names here
 OBJS=build.o algorithms.o cell.o comms.o constants.o core.o dos.o dos_utils.o electronic.o io.o jdos.o jdos_utils.o optics.o parameters.o pdos.o pdis.o projection_utils.o xmgrace_utils.o photo.o
@@ -38,7 +39,7 @@ od2od : od2od.f90 $(OBJS) ../make.system
 	$(F90) $(FFLAGS) $< $(OBJS) -o ../od2od
 
 optados : optados.f90 $(OBJS) ../make.system
-	$(F90) $(FFLAGS) $< $(OBJS) -o ../optados$(EXTENSION)
+	$(F90) $(FFLAGS) $< $(OBJS) -o $(PREFIX)optados$(EXTENSION)
 
 algorithms.o : algorithms.f90 io.o constants.o ../make.system
 	$(F90) -c $(FFLAGS) $<
