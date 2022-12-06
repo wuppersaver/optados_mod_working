@@ -1149,6 +1149,15 @@ contains
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of qe_numerator failed')
     qe_tsm = 0.0_dp
 
+    if (iprint > 2 .and. on_root) then
+      write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
+      write (stdout,125) shape(matrix_weights)
+      write (stdout,125) nbands, nbands, num_kpoints_on_node(my_node_id), nspins
+      125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
+      write(stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
+      ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+    end if
+
     call jdos_utils_calculate_delta(delta_temp)
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
