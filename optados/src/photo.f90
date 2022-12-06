@@ -323,12 +323,12 @@ contains
       write (stdout, '(1x,a78)') '+------------------------ Printing pDOS_weights_atoms -----------------------+'
       write (stdout, 125) i_max, pdos_mwab%nbands , num_kpoints_on_node(my_node_id) , nspins
       125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
-      write(stdout,'(999(es15.8))') ((((pdos_weights_atoms(i, n_eigen, N, N_spin),N_spin=1,nspins)&
+      write(stdout,'(9999(es15.8))') ((((pdos_weights_atoms(i, n_eigen, N, N_spin),N_spin=1,nspins)&
       ,N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands),i=1,i_max)
       write (stdout, '(1x,a78)') '+----------------------- Printing pDOS_weights_k_band -----------------------+'
       write (stdout, 124) pdos_mwab%nbands, num_kpoints_on_node(my_node_id), nspins
       124 format(1x,I3,1x,I3,1x,I3,1x)
-      write(stdout,'(999(es15.8))') (((pdos_weights_k_band(n_eigen, N, N_spin)&
+      write(stdout,'(9999(es15.8))') (((pdos_weights_k_band(n_eigen, N, N_spin)&
         ,N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands)
     end if
   end subroutine make_pdos_weights_atoms
