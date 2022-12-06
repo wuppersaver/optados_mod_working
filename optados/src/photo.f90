@@ -361,7 +361,7 @@ contains
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
-    ! real(kind=dp), allocatable, dimension(:,:,:,:,:) :: matrix_weights
+    real(kind=dp), allocatable, dimension(:,:,:,:,:) :: matrix_weights
 
     integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr, N_energy
     integer :: jdos_bin,i,s
