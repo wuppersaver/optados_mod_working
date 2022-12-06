@@ -545,7 +545,7 @@ contains
     N_geom = 1
 
     allocate (foptical_matrix_weights(nbands + 1, nbands + 1, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
-    if (ierr /= 0) call io_error('Error: make_optical_weights - allocation of optical_matrix_weights failed')
+    if (ierr /= 0) call io_error('Error: make_optical_weights - allocation of foptical_matrix_weights failed')
     foptical_matrix_weights = 0.0_dp
 
     if (index(optics_geom, 'polar') > 0) then
