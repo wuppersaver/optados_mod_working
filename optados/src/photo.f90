@@ -669,7 +669,7 @@ contains
       do N2=1,N_geom
         do N_spin=1, nspins
           do N=1, num_kpoints_on_node(my_node_id)
-            write(stdout,'(99999(es15.8))') ((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2)n_eigen2=1,nbands+1),&
+            write(stdout,'(99999(es15.8))') ((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),n_eigen2=1,nbands+1),&
             n_eigen=1,nbands+1)
           end do
         end do
@@ -1168,7 +1168,7 @@ contains
       do N2=1,N_geom
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
-            write(stdout,'(99999(es15.8))') ((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),n_eigen2=1,nbands),n_eigen=1,nbands)
+            write (stdout,'(99999(es15.8))') ((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),n_eigen2=1,nbands),n_eigen=1,nbands)
           end do
         end do
       end do
@@ -1182,7 +1182,7 @@ contains
       write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins
       do N_spin=1,nspins
         do N=1, num_kpoints_on_node(my_node_id)
-          ((delta_temp(nbands, nbands, num_kpoints_on_node(my_node_id), nspins),neigen_2=1,nbands),neigen=1,nbands)
+          write (stdout,'(99999(es15.8))') ((delta_temp(n_eigen, n_eigen2, N, N_spin),n_eigen2=1,nbands),n_eigen=1,nbands)
         end do
       end do
     end if
