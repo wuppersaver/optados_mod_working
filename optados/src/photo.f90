@@ -771,7 +771,7 @@ contains
       light_path(atom) = thickness_atom(atom)
     end do
 
-    N_energy = photo_photon_energy/jdos_spacing
+    N_energy = int(photo_photon_energy/jdos_spacing)
     attenuation_layer = 1.0_dp
 
     do atom = 1, max_atoms
@@ -997,7 +997,7 @@ contains
     real(kind=dp), allocatable, dimension(:, :, :):: E_x
     real(kind=dp), allocatable, dimension(:, :, :):: E_y
 
-    N_energy = photo_photon_energy/jdos_spacing
+    N_energy = int(photo_photon_energy/jdos_spacing)
 
     allocate (E_x(nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of qe_numerator failed')
@@ -1349,7 +1349,7 @@ contains
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
 
-    N_energy = photo_photon_energy/jdos_spacing
+    N_energy = int(photo_photon_energy/jdos_spacing)
 
     if (allocated(epsilon)) then
       deallocate (epsilon, stat=ierr)
