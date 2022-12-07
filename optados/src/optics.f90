@@ -574,13 +574,14 @@ contains
       N_eff = (x*e_mass*cell_volume*1E-30*epsilon_0*2)/(pi)
     end if
     
-    if (iprint > 2 .and. on_root) then
+    if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------------- Printing Epsilon-2 ---------------------------+'
       if (.not. optics_intraband) then
-        write(stdout,'(9999(es13.5))') (((epsilon(jdos_bin, j, N2, 1),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+        write(stdout,'(99999(es13.5))') (((epsilon(jdos_bin, j, N2, 1),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
       else
-        write(stdout,'(9999(es13.5))') ((((epsilon(jdos_bin, j, N2, i),i=1,3),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+        write(stdout,'(99999(es13.5))') ((((epsilon(jdos_bin, j, N2, i),i=1,3),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
       end if
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
   end subroutine calc_epsilon_2
@@ -641,13 +642,14 @@ contains
       end do
     end do
 
-    if (iprint > 2 .and. on_root) then
+    if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------------- Printing Epsilon-1 ---------------------------+'
       if (.not. optics_intraband) then
-        write(stdout,'(9999(es13.5))') (((epsilon(jdos_bin, j, N2, 1),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+        write(stdout,'(99999(es13.5))') (((epsilon(jdos_bin, j, N2, 1),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
       else
-        write(stdout,'(9999(es13.5))') ((((epsilon(jdos_bin, j, N2, i),i=1,3),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
+        write(stdout,'(99999(es13.5))') ((((epsilon(jdos_bin, j, N2, i),i=1,3),N2=1,N_geom),j=1,2),jdos_bin=1,jdos_nbins)
       end if
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
   end subroutine calc_epsilon_1

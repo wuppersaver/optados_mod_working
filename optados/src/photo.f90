@@ -326,12 +326,14 @@ contains
       125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
       write(stdout,'(9999(es15.8))') ((((pdos_weights_atoms(i, n_eigen, N, N_spin),N_spin=1,nspins)&
       ,N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands),i=1,i_max)
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
       write (stdout, '(1x,a78)') '+----------------------- Printing pDOS_weights_k_band -----------------------+'
       write (stdout, 124) shape(pdos_weights_k_band)
       write (stdout, 124) pdos_mwab%nbands, num_kpoints_on_node(my_node_id), nspins
       124 format(1x,I3,1x,I3,1x,I3,1x)
       write(stdout,'(9999(es15.8))') (((pdos_weights_k_band(n_eigen, N, N_spin)&
         ,N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands)
+        write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
   end subroutine make_pdos_weights_atoms
 
@@ -383,6 +385,7 @@ contains
       write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
       write(stdout,'(9999(es15.8))') (((((matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
       ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
     
     do atom = 1, max_atoms                           ! Loop over atoms
@@ -417,6 +420,7 @@ contains
         126 format(1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x) 
         write (stdout,'(9999(es15.8))') (((((projected_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom)&
         ,N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
+        write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
       end if
 
       ! Send matrix element to jDOS routine and get weighted jDOS back
@@ -429,6 +433,7 @@ contains
         124 format(1x,I3,1x,I3,1x,I3,1x)
         write(stdout,'(9999(es15.8))') (((weighted_jdos(jdos_bin, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
         ,jdos_bin=1,jdos_nbins)
+        write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
       end if
 
       if (allocated(projected_matrix_weights)) then
@@ -456,10 +461,13 @@ contains
           125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x) 
           write(stdout,'(9999(es15.8))') ((((dos_matrix_weights(n_eigen, n_eigen2, N, s),s=1,nspins),N=1,&
           num_kpoints_on_node(my_node_id)),n_eigen2=1, nbands),n_eigen=1,size(matrix_weights, 5))
+          write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
           write (stdout, '(1x,a78)') '+--------------------------- Printing DOS @ Energy --------------------------+'
           write(stdout,'(9(es15.8))') ((dos_at_e(i,s),i=1,3),s=1,nspins)
+          write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
           write (stdout, '(1x,a78)') '+----------------------- Printing Weighted DOS @ Energy ---------------------+'
           write(stdout,'(9999(es15.8))') ((weighted_dos_at_e(s,n_eigen),s=1,nspins),n_eigen=1,size(matrix_weights, 5))
+          write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
         end if
 
       end if
@@ -674,6 +682,7 @@ contains
           end do
         end do
       end do
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
   end subroutine make_foptical_weights
 
@@ -800,6 +809,7 @@ contains
       write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
       write (stdout, '(1x,I3,1x,I3,1x)') jdos_nbins, max_layer
       write(stdout,'(9999(es15.8))') ((I_layer(jdos_bin, num_layer),jdos_bin=1,jdos_nbins),num_layer=1,max_layer)
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
   end subroutine calc_absorp_layer
@@ -855,6 +865,7 @@ contains
       125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
       write(stdout,'(9999(es15.8))') ((((electron_esc(n_eigen,N,N_spin,atom),atom=1,max_atoms),N_spin=1,nspins),&
       N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
   end subroutine calc_electron_esc
@@ -1089,6 +1100,7 @@ contains
       write (stdout,'(1x,I3,1x,I3,1x,I3,1x)') nbands, num_kpoints_on_node(my_node_id), nspins 
       write(stdout,'(9999(es15.8))') (((E_transverse(n_eigen,N,N_spin),N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),&
       n_eigen=1,nbands)
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
     
@@ -1172,6 +1184,7 @@ contains
           end do
         end do
       end do
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
     call jdos_utils_calculate_delta(delta_temp)
@@ -1185,6 +1198,7 @@ contains
           write (stdout,'(99999(es15.8))') ((delta_temp(n_eigen, n_eigen2, N, N_spin),n_eigen2=1,nbands),n_eigen=1,nbands)
         end do
       end do
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
     if (iprint .eq. 5 .and. on_root) then
@@ -1246,6 +1260,11 @@ contains
         end do
       end do
     end do
+
+    if (iprint .eq. 5 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+    end if
+    
     if (allocated(delta_temp)) then
       deallocate (delta_temp, stat=ierr)
       if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate kpoint_r_cart')
@@ -1285,6 +1304,7 @@ contains
           end do
         end do
       end do
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
   end subroutine calc_three_step_model
@@ -1416,6 +1436,10 @@ contains
       end do
     end do
 
+    if (iprint .eq. 5 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+    end if
+
     if (index(write_photo_matrix, 'slab') > 0) then
       call cell_calc_kpoint_r_cart
 
@@ -1445,6 +1469,7 @@ contains
           end do
         end do
       end do
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
     if (allocated(foptical_matrix_weights)) then
