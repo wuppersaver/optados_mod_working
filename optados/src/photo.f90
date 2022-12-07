@@ -1187,6 +1187,13 @@ contains
       end do
     end if
 
+    if (iprint > 4 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
+      write (stdout, 222) 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer - layer -&
+      & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
+      222 format(1x,a207)
+    end if
+
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
@@ -1218,6 +1225,13 @@ contains
                  (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
                 (1 + field_emission(n_eigen, N_spin, N))
+              if (iprint > 4 .and. on_root) then
+                write (stdout, 225) matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), delta_temp(n_eigen, n_eigen2, N, N_spin), &
+                electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
+                qe_factor,transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin),&
+                pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
+                225 format(13(1x,es16.8,1x))
+              end if  
             end do
             qe_tsm(n_eigen, n_eigen2, N, N_spin, max_atoms + 1) = &
               (matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
@@ -1347,6 +1361,13 @@ contains
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of qe_numerator failed')
     qe_osm = 0.0_dp
 
+    if (iprint > 4 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------ Printing list of values going into 1step QE Values ------------+'
+      write (stdout, 222) 'foptical_matrix_weights - electron_esc - electrons_per_state - kpoint_weight - I_layer - layer -&
+      & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
+      222 format(1x,a207)
+    end if
+
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
@@ -1375,6 +1396,13 @@ contains
                (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                 pdos_weights_k_band(n_eigen, N, N_spin)))* &
               (1 + field_emission(n_eigen, N_spin, N))
+            if (iprint > 4 .and. on_root) then
+              write (stdout, 225) foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
+              electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
+              qe_factor,transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin),&
+              pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
+              225 format(12(1x,es16.8))
+            end if
           end do
           qe_osm(n_eigen, N, N_spin, max_atoms + 1) = &
             (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
@@ -1413,12 +1441,10 @@ contains
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
-            write(stdout,'(9999(es15.8))') ((qe_tsm(n_eigen,n_eigen2,N,N_spin,atom),n_eigen2=1,nbands),n_eigen=1,nbands)
+            write(stdout,'(9999(es15.8))') (qe_osm(n_eigen,N,N_spin,atom),n_eigen=1,nbands)
           end do
         end do
       end do
-      write(stdout,'(9999(es15.8))') ((((qe_osm(n_eigen,N,N_spin,atom),atom=1,max_atoms+1),N_spin=1,nspins),&
-      N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
     end if
 
     if (allocated(foptical_matrix_weights)) then
