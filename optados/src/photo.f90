@@ -1144,7 +1144,7 @@ contains
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
 
-    N_energy = photo_photon_energy/jdos_spacing
+    N_energy = int(photo_photon_energy/jdos_spacing)
 
     if (allocated(epsilon)) then
       deallocate (epsilon, stat=ierr)
@@ -1202,7 +1202,8 @@ contains
     end if
 
     if (iprint .eq. 5 .and. on_root) then
-      N2 = 0
+      i = 13 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing 
+      N2 = 0 ! Counting variables to get the dimension in the n_eigen2 dimension during printing
       do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
         do N_spin = 1, nspins                    ! Loop over spins
           do n_eigen2 = 1, nbands
@@ -1215,7 +1216,7 @@ contains
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
       write (stdout, '(1x,a199)') 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer -&
       & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
-      write (stdout, '(5(1x,I4))')  max_atoms, N2, nbands, nspins, num_kpoints_on_node(my_node_id)
+      write (stdout, '(6(1x,I4))')  i,max_atoms, N2, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
@@ -1392,10 +1393,11 @@ contains
     qe_osm = 0.0_dp
 
     if (iprint .eq. 5 .and. on_root) then
+      i = 12 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing 
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 1step QE Values ------------+'
       write (stdout, '(1x,a195)') 'foptical_matrix_weights - electron_esc - electrons_per_state - kpoint_weight - I_layer -&
       & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
-      write (stdout, '(4(1x,I4))') max_atoms, nbands, nspins, num_kpoints_on_node(my_node_id)
+      write (stdout, '(5(1x,I4))') i,max_atoms, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
