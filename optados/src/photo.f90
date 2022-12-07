@@ -1203,8 +1203,8 @@ contains
 
     if (iprint .eq. 5 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
-      write (stdout, '(1x,a207)') 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer &
-      &- layer - qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
+      write (stdout, '(1x,a199)') 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer -&
+      & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
       write (stdout, '(5(1x,I4))')  max_atoms, nbands, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
@@ -1240,11 +1240,11 @@ contains
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
                 (1 + field_emission(n_eigen, N_spin, N))
               if (iprint .eq. 5 .and. on_root) then
-                write (stdout, 225) matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), delta_temp(n_eigen, n_eigen2, N, N_spin), &
-                electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
+                write (stdout, '(13(1x,E17.8E4))') matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), &
+                delta_temp(n_eigen, n_eigen2, N, N_spin), electron_esc(n_eigen, N, N_spin, atom), &
+                electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
                 qe_factor,transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin),&
                 pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
-                225 format(13(1x,es16.8,1x))
               end if  
             end do
             qe_tsm(n_eigen, n_eigen2, N, N_spin, max_atoms + 1) = &
@@ -1383,7 +1383,7 @@ contains
 
     if (iprint .eq. 5 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 1step QE Values ------------+'
-      write (stdout, '(1x,a207)') 'foptical_matrix_weights - electron_esc - electrons_per_state - kpoint_weight - I_layer - layer -&
+      write (stdout, '(1x,a195)') 'foptical_matrix_weights - electron_esc - electrons_per_state - kpoint_weight - I_layer -&
       & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
       write (stdout, '(4(1x,I4))') max_atoms, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
@@ -1417,11 +1417,10 @@ contains
                 pdos_weights_k_band(n_eigen, N, N_spin)))* &
               (1 + field_emission(n_eigen, N_spin, N))
             if (iprint .eq. 5 .and. on_root) then
-              write (stdout, 225) foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
+              write (stdout, '(12(1x,E16.8E4))') foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
               electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
               qe_factor,transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin),&
               pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
-              225 format(12(1x,es16.8))
             end if
           end do
           qe_osm(n_eigen, N, N_spin, max_atoms + 1) = &
