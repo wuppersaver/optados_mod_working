@@ -323,14 +323,14 @@ contains
       write (stdout, '(1x,a78)') '+------------------------ Printing pDOS_weights_atoms -----------------------+'
       write (stdout, 125) shape(pdos_weights_atoms)
       write (stdout, 125) i_max, pdos_mwab%nbands , num_kpoints_on_node(my_node_id) , nspins
-      125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
+      125 format(4(1x,I4))
       write(stdout,'(9999(es15.8))') ((((pdos_weights_atoms(i, n_eigen, N, N_spin),N_spin=1,nspins)&
       ,N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands),i=1,i_max)
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
       write (stdout, '(1x,a78)') '+----------------------- Printing pDOS_weights_k_band -----------------------+'
       write (stdout, 124) shape(pdos_weights_k_band)
       write (stdout, 124) pdos_mwab%nbands, num_kpoints_on_node(my_node_id), nspins
-      124 format(1x,I3,1x,I3,1x,I3,1x)
+      124 format(3(1x,I4))
       write(stdout,'(9999(es15.8))') (((pdos_weights_k_band(n_eigen, N, N_spin)&
         ,N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,pdos_mwab%nbands)
         write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -417,7 +417,7 @@ contains
         write (stdout, '(1x,a78)') '+--------------------- Printing Projected Matrix Weights --------------------+'
         write (stdout, 126) shape(projected_matrix_weights)
         write (stdout, 126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
-        126 format(1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x) 
+        126 format(5(1x,I4)) 
         write (stdout,'(9999(es15.8))') (((((projected_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom)&
         ,N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
         write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -430,7 +430,7 @@ contains
         write (stdout, '(1x,a78)') '+------------------------ Printing Weighted Joint-DOS -----------------------+'
         write (stdout, 124) shape(weighted_jdos)
         write (stdout, 124) jdos_nbins, nspins, N_geom
-        124 format(1x,I3,1x,I3,1x,I3,1x)
+        124 format(3(1x,I4))
         write(stdout,'(9999(es15.8))') (((weighted_jdos(jdos_bin, N_spin, N2),N2=1,N_geom),N_spin=1,nspins)&
         ,jdos_bin=1,jdos_nbins)
         write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -458,7 +458,7 @@ contains
           write (stdout, '(1x,a78)') '+------------------------ Printing DOS Matrix Weights -----------------------+'
           write (stdout, 125) shape(dos_matrix_weights)
           write (stdout, 125) size(matrix_weights,5), nbands, num_kpoints_on_node(my_node_id), nspins
-          125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x) 
+          125 format(4(1x,I4)) 
           write(stdout,'(9999(es15.8))') ((((dos_matrix_weights(n_eigen, n_eigen2, N, s),s=1,nspins),N=1,&
           num_kpoints_on_node(my_node_id)),n_eigen2=1, nbands),n_eigen=1,size(matrix_weights, 5))
           write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -673,7 +673,7 @@ contains
       write (stdout, '(1x,a78)') '+------------------------- Printing Free OM Weights -------------------------+'
       write (stdout, 126) shape(foptical_matrix_weights)
       write (stdout, 126) nbands+1, nbands+1, num_kpoints_on_node(my_node_id), nspins, N_geom
-      126 format(1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x)
+      126 format(5(1x,I4))
       do N2=1,N_geom
         do N_spin=1, nspins
           do N=1, num_kpoints_on_node(my_node_id)
@@ -807,7 +807,7 @@ contains
     
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
-      write (stdout, '(1x,I3,1x,I3,1x)') jdos_nbins, max_layer
+      write (stdout, '(1x,I4,1x,I4,1x)') jdos_nbins, max_layer
       write(stdout,'(9999(es15.8))') ((I_layer(jdos_bin, num_layer),jdos_bin=1,jdos_nbins),num_layer=1,max_layer)
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
@@ -862,7 +862,7 @@ contains
       write (stdout, '(1x,a78)') '+----------------------- Printing P(Escape) per Layer -----------------------+'
       write (stdout, 125) shape(electron_esc)
       write (stdout, 125) nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms
-      125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x)
+      125 format(4(1x,I4))
       write(stdout,'(9999(es15.8))') ((((electron_esc(n_eigen,N,N_spin,atom),atom=1,max_atoms),N_spin=1,nspins),&
       N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -1096,8 +1096,8 @@ contains
 
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------ Printing Transverse Energy ------------------------+'
-      write (stdout,'(1x,I3,1x,I3,1x,I3,1x)') shape(E_transverse)
-      write (stdout,'(1x,I3,1x,I3,1x,I3,1x)') nbands, num_kpoints_on_node(my_node_id), nspins 
+      write (stdout,'(3(1x,I4))') shape(E_transverse)
+      write (stdout,'(3(1x,I4))') nbands, num_kpoints_on_node(my_node_id), nspins 
       write(stdout,'(9999(es15.8))') (((E_transverse(n_eigen,N,N_spin),N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),&
       n_eigen=1,nbands)
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -1203,9 +1203,9 @@ contains
 
     if (iprint .eq. 5 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
-      write (stdout, 222) 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer - layer -&
-      & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
-      222 format(1x,a207)
+      write (stdout, '(1x,a207)') 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer &
+      &- layer - qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
+      write (stdout, '(5(1x,I4))')  max_atoms, nbands, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
@@ -1296,7 +1296,7 @@ contains
       write (stdout, '(1x,a78)') '+------------------------- Printing 3step QE Matrix -------------------------+'
       write (stdout, 126) shape(qe_tsm)
       write (stdout, 126) nbands, nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
-      126 format(1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x,I3,1x)
+      126 format(5(1x,I4))
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
@@ -1383,9 +1383,9 @@ contains
 
     if (iprint .eq. 5 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 1step QE Values ------------+'
-      write (stdout, 222) 'foptical_matrix_weights - electron_esc - electrons_per_state - kpoint_weight - I_layer - layer -&
+      write (stdout, '(1x,a207)') 'foptical_matrix_weights - electron_esc - electrons_per_state - kpoint_weight - I_layer - layer -&
       & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
-      222 format(1x,a207)
+      write (stdout, '(4(1x,I4))') max_atoms, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
@@ -1461,7 +1461,7 @@ contains
       write (stdout, '(1x,a78)') '+------------------------- Printing 1step QE Matrix -------------------------+'
       write (stdout, 125) shape(qe_osm) 
       write (stdout, 125) nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms+1
-      125 format(1x,I3,1x,I3,1x,I3,1x,I3,1x) 
+      125 format(4(1x,I4)) 
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
@@ -1764,7 +1764,7 @@ contains
 
     end if
     if (index(photo_model, '3step') > 0) then
-      write (stdout, '(1x,a78)') '+---------------------------- Photoemission ---------------------------------+'
+      write (stdout, '(1x,a78)') '+------------------------------ Photoemission -------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a6)') '| Work Function', photo_work_function, &
         'eV          Photon Energy', photo_photon_energy, 'eV   |'
@@ -1787,7 +1787,7 @@ contains
     end if
 
     if (index(photo_model, '1step') > 0) then
-      write (stdout, '(1x,a78)') '+---------------------------- Photoemission ---------------------------------+'
+      write (stdout, '(1x,a78)') '+------------------------------ Photoemission -------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a5)') '| Work Function', photo_work_function, &
         'eV          PhotonEnergy', photo_photon_energy, 'eV  |'
