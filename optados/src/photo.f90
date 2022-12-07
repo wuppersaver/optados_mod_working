@@ -1202,16 +1202,20 @@ contains
     end if
 
     if (iprint .eq. 5 .and. on_root) then
-      N = 0
-      do n_eigen=1,nbands
-        if(band_energy(n_eigen2, N_spin, N) .gt. efermi) then
-          N = N + 1
-        end if 
+      N2 = 0
+      do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
+        do N_spin = 1, nspins                    ! Loop over spins
+          do n_eigen2 = 1, nbands
+            if(band_energy(n_eigen2, N_spin, N) .gt. efermi) then
+              N2 = N2 + 1
+            end if
+          end do
+        end do 
       end do
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
       write (stdout, '(1x,a199)') 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer -&
       & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
-      write (stdout, '(5(1x,I4))')  max_atoms, N, nbands, nspins, num_kpoints_on_node(my_node_id)
+      write (stdout, '(5(1x,I4))')  max_atoms, N2, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
