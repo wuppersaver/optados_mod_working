@@ -1202,21 +1202,12 @@ contains
     end if
 
     if (iprint .eq. 5 .and. on_root) then
-      i = 13 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing 
-      N2 = 0 ! Counting variables to get the dimension in the n_eigen2 dimension during printing
-      do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
-        do N_spin = 1, nspins                    ! Loop over spins
-          do n_eigen2 = 1, nbands
-            if(band_energy(n_eigen2, N_spin, N) .gt. efermi) then
-              N2 = N2 + 1
-            end if
-          end do
-        end do 
-      end do
+      i = 14 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing 
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
       write (stdout, '(1x,a199)') 'matrix_weights - delta_temp - electron_esc - electrons_per_state - kpoint_weight - I_layer -&
       & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
-      write (stdout, '(6(1x,I4))')  i,max_atoms, N2, nbands, nspins, num_kpoints_on_node(my_node_id)
+      write (stdout, '(1x,a10,E26.15E3)') 'E_Fermi = ',efermi
+      write (stdout, '(1x,a11,6(1x,I4))')  'Array Shape', i, max_atoms, nbands, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
@@ -1237,6 +1228,13 @@ contains
             vac_g = 1.0_dp
           end if
           do n_eigen2 = 1, nbands
+            if (iprint .eq. 5 .and. on_root) then
+              write (stdout, '(13(1x,E17.8E3))') band_energy(n_eigen2, N_spin, N), & 
+              matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), delta_temp(n_eigen, n_eigen2, N, N_spin), &
+              electron_esc(n_eigen, N, N_spin, atom), electrons_per_state, kpoint_weight(N), I_layer(N_energy, layer(atom)), &
+              qe_factor, transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin), &
+              pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
+            end if 
             !! this could be checked if it has an impact on the final value
             if (band_energy(n_eigen2, N_spin, N) .lt. efermi) cycle
             do atom = 1, max_atoms
@@ -1249,14 +1247,7 @@ contains
                  qe_factor*transverse_g*vac_g*fermi_dirac* &
                  (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
-                (1 + field_emission(n_eigen, N_spin, N))
-              if (iprint .eq. 5 .and. on_root) then
-                write (stdout, '(13(1x,E17.8E4))') matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), &
-                delta_temp(n_eigen, n_eigen2, N, N_spin), electron_esc(n_eigen, N, N_spin, atom), &
-                electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
-                qe_factor,transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin),&
-                pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
-              end if  
+                (1 + field_emission(n_eigen, N_spin, N)) 
             end do
             qe_tsm(n_eigen, n_eigen2, N, N_spin, max_atoms + 1) = &
               (matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
@@ -1397,7 +1388,7 @@ contains
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 1step QE Values ------------+'
       write (stdout, '(1x,a195)') 'foptical_matrix_weights - electron_esc - electrons_per_state - kpoint_weight - I_layer -&
       & qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band - field_emission'
-      write (stdout, '(5(1x,I4))') i,max_atoms, nbands, nspins, num_kpoints_on_node(my_node_id)
+      write (stdout, '(1x,a11,6(1x,I4))') 'Array Shape', i, max_atoms, nbands, nspins, num_kpoints_on_node(my_node_id)
     end if
 
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
