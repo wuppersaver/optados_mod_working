@@ -1315,7 +1315,7 @@ contains
     end if
 
   end subroutine calc_three_step_model
-
+  
   !===============================================================================
   subroutine calc_one_step_model
     !===============================================================================
@@ -1347,7 +1347,7 @@ contains
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
     integer :: matrix_unit = 25
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
-    real(kind=dp) :: fermi_dirac, t_den, qe_factor, band_eff
+    real(kind=dp) :: fermi_dirac, t_den, qe_factor, argument
     logical :: fixed
 
     width = (1.0_dp/11604.45_dp)*photo_temperature
@@ -1399,31 +1399,44 @@ contains
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
-          band_eff = (band_energy(n_eigen, N_spin, N) - efermi)
-          fermi_dirac = 1.0_dp/(exp((band_eff/(kB*photo_temperature))) + 1.0_dp)
+          argument = (band_energy(n_eigen, N_spin, N) - efermi)/(kB*photo_temperature)
+          
+          ! This is a bit of an arbitrary condition, but it turns out
+          ! that this corresponds to a fermi_dirac value of ~1E-250
+          ! and this cutoff condition saves us from running into arithmetic
+          ! issues when computing fermi_dirac due to possible underflow.
+          if (argument .gt. 555.0_dp) then
+            fermi_dirac = 0.0_dp
+          else
+            fermi_dirac = 1.0_dp/(exp(argument) + 1.0_dp)
+          end if
+          
           if ((photo_photon_energy - E_transverse(n_eigen, N, N_spin)) .le. (evacuum_eff - efermi)) then
             transverse_g = gaussian((photo_photon_energy - E_transverse(n_eigen, N, N_spin)), &
                                     width, (evacuum_eff - efermi))/norm_vac
           else
             transverse_g = 1.0_dp
           end if
+          
           if ((band_energy(n_eigen, N_spin, N) + photo_photon_energy) .lt. evacuum_eff) then
             vac_g = gaussian((band_energy(n_eigen, N_spin, N) + photo_photon_energy) + &
                              scissor_op, width, evacuum_eff)/norm_vac
           else
             vac_g = 1.0_dp
           end if
+          
           n_eigen2 = nbands + 1
+          
           do atom = 1, max_atoms
-            qe_osm(n_eigen, N, N_spin, atom) = &
-              (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
-               (electron_esc(n_eigen, N, N_spin, atom))* &
-               electrons_per_state*kpoint_weight(N)* &
-               (I_layer(N_energy, layer(atom)))* &
-               qe_factor*transverse_g*vac_g*fermi_dirac* &
-               (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
-                pdos_weights_k_band(n_eigen, N, N_spin)))* &
-              (1.0_dp + field_emission(n_eigen, N_spin, N))
+              qe_osm(n_eigen, N, N_spin, atom) = &
+                (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
+                (electron_esc(n_eigen, N, N_spin, atom))* &
+                electrons_per_state*kpoint_weight(N)* &
+                (I_layer(N_energy, layer(atom)))* &
+                qe_factor*transverse_g*vac_g*fermi_dirac* &
+                (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
+                  pdos_weights_k_band(n_eigen, N, N_spin)))* &
+                  (1.0_dp + field_emission(n_eigen, N_spin, N))
             if (iprint .eq. 5 .and. on_root) then
               write (stdout, '(12(1x,E16.8E4))') foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
               electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
@@ -1431,14 +1444,14 @@ contains
               pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
             end if
           end do
-          qe_osm(n_eigen, N, N_spin, max_atoms + 1) = &
-            (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
-             bulk_prob(n_eigen, N, N_spin)* &
-             electrons_per_state*kpoint_weight(N)* &
-             qe_factor*transverse_g*vac_g*fermi_dirac* &
-             (pdos_weights_atoms(atom_order(max_atoms), n_eigen, N, N_spin)/ &
-              pdos_weights_k_band(n_eigen, N, N_spin)))* &!+&
-            (1.0_dp + field_emission(n_eigen, N_spin, N))
+            qe_osm(n_eigen, N, N_spin, max_atoms + 1) = &
+              (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
+              bulk_prob(n_eigen, N, N_spin)* &
+              electrons_per_state*kpoint_weight(N)* &
+              qe_factor*transverse_g*vac_g*fermi_dirac* &
+              (pdos_weights_atoms(atom_order(max_atoms), n_eigen, N, N_spin)/ &
+                pdos_weights_k_band(n_eigen, N, N_spin)))* &!+&
+              (1.0_dp + field_emission(n_eigen, N_spin, N))
         end do
       end do
     end do

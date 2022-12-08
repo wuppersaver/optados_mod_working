@@ -35,7 +35,7 @@ ifeq ($(SYSTEM), gfortran)
    FFLAGS= -fconvert=big-endian -fPIC 
    FFLAGS_PARALLEL=  -DMPI
    FFLAGS_FAST= -O3
-   FFLAGS_DEBUG= -O0 -pg -g -finit-real=snan -ffpe-trap=denormal
+   FFLAGS_DEBUG= -O0 -pg -g -finit-real=snan #-ffpe-trap=zero,overflow,underflow,invalid
    EXTENSION=.gfortran
 endif
 
