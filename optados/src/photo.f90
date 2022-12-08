@@ -369,6 +369,7 @@ contains
 
     allocate (absorp_photo(jdos_nbins, max_atoms))
     allocate (reflect_photo(jdos_nbins, max_atoms))
+    N_energy = int(photo_photon_energy/jdos_spacing)
 
     call make_weights(matrix_weights)
     
@@ -892,7 +893,8 @@ contains
     integer :: atom, ierr
 
     num_layers = int((photo_imfp_const*bulk_length)/thickness_atom(max_atoms))
-
+    N_energy = int(photo_photon_energy/jdos_spacing)
+    
     allocate (bulk_esc_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
     bulk_esc_tmp = 0.0_dp
