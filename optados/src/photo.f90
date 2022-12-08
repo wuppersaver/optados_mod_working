@@ -1177,8 +1177,8 @@ contains
 
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------- Printing Matrix Weights in 3Step Function ----------------+'
-      write (stdout,126) shape(matrix_weights)
-      write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
+      write (stdout,'(5(1x,I4))') shape(matrix_weights)
+      write (stdout,'(5(1x,I4))') nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
       do N2=1,N_geom
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
