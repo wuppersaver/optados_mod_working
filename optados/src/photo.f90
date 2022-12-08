@@ -894,7 +894,7 @@ contains
 
     num_layers = int((photo_imfp_const*bulk_length)/thickness_atom(max_atoms))
     N_energy = int(photo_photon_energy/jdos_spacing)
-    
+
     allocate (bulk_esc_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
     bulk_esc_tmp = 0.0_dp
@@ -1252,7 +1252,7 @@ contains
                  qe_factor*transverse_g*vac_g*fermi_dirac* &
                  (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
-                (1 + field_emission(n_eigen, N_spin, N)) 
+                (1.0_dp + field_emission(n_eigen, N_spin, N)) 
             end do
             qe_tsm(n_eigen, n_eigen2, N, N_spin, max_atoms + 1) = &
               (matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
@@ -1262,7 +1262,7 @@ contains
                qe_factor*transverse_g*vac_g*fermi_dirac* &
                (pdos_weights_atoms(atom_order(max_atoms), n_eigen, N, N_spin)/ &
                 pdos_weights_k_band(n_eigen, N, N_spin)))* &
-              (1 + field_emission(n_eigen, N_spin, N))
+              (1.0_dp + field_emission(n_eigen, N_spin, N))
           end do
         end do
       end do
@@ -1423,7 +1423,7 @@ contains
                qe_factor*transverse_g*vac_g*fermi_dirac* &
                (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                 pdos_weights_k_band(n_eigen, N, N_spin)))* &
-              (1 + field_emission(n_eigen, N_spin, N))
+              (1.0_dp + field_emission(n_eigen, N_spin, N))
             if (iprint .eq. 5 .and. on_root) then
               write (stdout, '(12(1x,E16.8E4))') foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
               electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
@@ -1438,7 +1438,7 @@ contains
              qe_factor*transverse_g*vac_g*fermi_dirac* &
              (pdos_weights_atoms(atom_order(max_atoms), n_eigen, N, N_spin)/ &
               pdos_weights_k_band(n_eigen, N, N_spin)))* &!+&
-            (1 + field_emission(n_eigen, N_spin, N))
+            (1.0_dp + field_emission(n_eigen, N_spin, N))
         end do
       end do
     end do
