@@ -1193,8 +1193,8 @@ contains
     
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+---------------------- Printing Delta Function Values ----------------------+'
-      write (stdout,126) shape(delta_temp)
-      write (stdout,126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins
+      write (stdout,'(5(1x,I4))') shape(delta_temp)
+      write (stdout,'(5(1x,I4))') nbands, nbands, num_kpoints_on_node(my_node_id), nspins
       do N_spin=1,nspins
         do N=1, num_kpoints_on_node(my_node_id)
           write (stdout,'(99999(es15.8))') ((delta_temp(n_eigen, n_eigen2, N, N_spin),n_eigen2=1,nbands),n_eigen=1,nbands)
@@ -1311,8 +1311,8 @@ contains
 
     if ((iprint .eq. 4 .and. on_root) .or. (iprint .eq. 6 .and. on_root)) then
       write (stdout, '(1x,a78)') '+------------------------- Printing 3step QE Matrix -------------------------+'
-      write (stdout, '5(1x,I4)') shape(qe_tsm)
-      write (stdout, '5(1x,I4)') nbands, nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
+      write (stdout, '(5(1x,I4))') shape(qe_tsm)
+      write (stdout, '(5(1x,I4))') nbands, nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
