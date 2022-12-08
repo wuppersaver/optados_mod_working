@@ -355,7 +355,7 @@ contains
                              setup_energy_scale
     use od_comms, only: on_root, my_node_id
     use od_parameters, only: optics_geom, adaptive, linear, fixed, optics_intraband, &
-                             optics_drude_broadening, photo_slab_volume, iprint
+                             optics_drude_broadening, photo_slab_volume, jdos_spacing, photo_photon_energy,iprint
     use od_dos_utils, only: dos_utils_calculate_at_e
     use od_constants, only: epsilon_0, e_charge
 
