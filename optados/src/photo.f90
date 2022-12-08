@@ -1138,7 +1138,7 @@ contains
     integer :: angle, N_energy
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
-    real(kind=dp) :: kbT, fermi_dirac, t_den, qe_factor, band_eff
+    real(kind=dp) :: kbT, fermi_dirac, t_den, qe_factor, argument
     logical :: fixed
     integer :: matrix_unit
 
@@ -1216,8 +1216,18 @@ contains
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
-          band_eff = (band_energy(n_eigen, N_spin, N) - efermi)
-          fermi_dirac = 1.0_dp/(exp((band_eff/(kB*photo_temperature))) + 1.0_dp)
+
+          argument = (band_energy(n_eigen, N_spin, N) - efermi)/(kB*photo_temperature)
+          ! This is a bit of an arbitrary condition, but it turns out
+          ! that this corresponds to a fermi_dirac value of ~1E-250
+          ! and this cutoff condition saves us from running into arithmetic
+          ! issues when computing fermi_dirac due to possible underflow.
+          if (argument .gt. 555.0_dp) then
+            fermi_dirac = 0.0_dp
+          else
+            fermi_dirac = 1.0_dp/(exp(argument) + 1.0_dp)
+          end if
+
           if ((photo_photon_energy - E_transverse(n_eigen, N, N_spin)) .le. (evacuum_eff - efermi)) then
             transverse_g = gaussian((photo_photon_energy - E_transverse(n_eigen, N, N_spin)), &
                                     width, (evacuum_eff - efermi))/norm_vac
@@ -1399,8 +1409,8 @@ contains
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
-          argument = (band_energy(n_eigen, N_spin, N) - efermi)/(kB*photo_temperature)
           
+          argument = (band_energy(n_eigen, N_spin, N) - efermi)/(kB*photo_temperature)
           ! This is a bit of an arbitrary condition, but it turns out
           ! that this corresponds to a fermi_dirac value of ~1E-250
           ! and this cutoff condition saves us from running into arithmetic
