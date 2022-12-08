@@ -1309,11 +1309,10 @@ contains
       close (unit=matrix_unit)
     end if
 
-    if (iprint .eq. 4 .and. on_root) then
+    if ((iprint .eq. 4 .and. on_root) .or. (iprint .eq. 6 .and. on_root)) then
       write (stdout, '(1x,a78)') '+------------------------- Printing 3step QE Matrix -------------------------+'
-      write (stdout, 126) shape(qe_tsm)
-      write (stdout, 126) nbands, nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
-      126 format(5(1x,I4))
+      write (stdout, '5(1x,I4)') shape(qe_tsm)
+      write (stdout, '5(1x,I4)') nbands, nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
@@ -1686,9 +1685,8 @@ contains
             ! we have to take account for this here.
             if (linear .and. .not. force_adaptive) then
               delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), E(idos), cuml)
-
             else
-              delta_temp(ib,jb,ik,is)=gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,E(idos))!&
+              delta_temp(ib, jb, ik, is) = gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,E(idos))!&
             end if
 
           end do unocc_states
