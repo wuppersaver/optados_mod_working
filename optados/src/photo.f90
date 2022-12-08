@@ -1343,7 +1343,7 @@ contains
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
     integer :: angle, N_energy, transitions_den, transitions_num
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
-    integer :: matrix_unit
+    integer :: matrix_unit = 25
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
     real(kind=dp) :: fermi_dirac, t_den, qe_factor, band_eff
     logical :: fixed
