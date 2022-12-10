@@ -774,8 +774,8 @@ contains
           !!statements. Also the total kinetic energy has to be > 0 to have a physical emission
           if (E_kinetic(n_eigen, N, N_spin) .gt. 0.0_dp .and. E_kinetic(n_eigen, N, N_spin) .gt. E_transverse(n_eigen, N, N_spin))&
           & then
-              theta_arpes(n_eigen, N, N_spin) = ((acos(E_kinetic(n_eigen, N, N_spin)) - E_transverse(n_eigen, N, N_spin))/&
-              &abs(E_kinetic(n_eigen, N, N_spin)))*rad_to_deg
+              theta_arpes(n_eigen, N, N_spin) = (acos((E_kinetic(n_eigen, N, N_spin) - E_transverse(n_eigen, N, N_spin))/&
+              &abs(E_kinetic(n_eigen, N, N_spin))))*rad_to_deg
           end if
         end do
       end do
