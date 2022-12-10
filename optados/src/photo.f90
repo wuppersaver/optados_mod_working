@@ -87,6 +87,10 @@ module od_photo
   integer :: max_layer
   real(kind=dp) :: e_fermi
   real(kind=dp) :: q_weight
+
+  ! Added by Felix Mildner, 12/2022
+
+  integer :: N_energy
 contains
 
   subroutine photo_calculate
@@ -364,7 +368,7 @@ contains
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
 
-    integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr, N_energy
+    integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr
     integer :: jdos_bin,i,s
 
     allocate (absorp_photo(jdos_nbins, max_atoms))
@@ -518,7 +522,7 @@ contains
     real(kind=dp), dimension(:), allocatable :: light_path
     real(kind=dp), dimension(:, :), allocatable :: attenuation_layer
     real(kind=dp) :: transmittance
-    integer :: atom, i, N_energy, ierr, first_atom_second_l, last_atom_secondlast_l
+    integer :: atom, i, ierr, first_atom_second_l, last_atom_secondlast_l
     real(kind=dp) :: I_0
     integer :: jdos_bin, num_layer
 
@@ -589,7 +593,6 @@ contains
       light_path(atom) = thickness_atom(atom)
     end do
 
-    N_energy = int(photo_photon_energy/jdos_spacing)
     attenuation_layer = 1.0_dp
 
     do atom = 1, max_atoms
@@ -659,12 +662,10 @@ contains
     use od_constants, only: hbar, ev_to_j, j_to_ev, e_mass, rad_to_deg
 
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy, transitions_den, transitions_num
+    integer :: angle, transitions_den, transitions_num
 
     real(kind=dp), allocatable, dimension(:, :, :):: E_x
     real(kind=dp), allocatable, dimension(:, :, :):: E_y
-
-    N_energy = int(photo_photon_energy/jdos_spacing)
 
     allocate (E_x(nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of qe_numerator failed')
@@ -848,11 +849,10 @@ contains
     real(kind=dp), dimension(:), allocatable :: bulk_light_tmp
     real(kind=dp), dimension(:, :, :, :), allocatable :: bulk_prob_tmp
     real(kind=dp) :: bulk_thickness
-    integer :: N, N_spin, n_eigen, i, N_energy, num_layers
+    integer :: N, N_spin, n_eigen, i, num_layers
     integer :: atom, ierr
 
     num_layers = int((photo_imfp_const*bulk_length)/thickness_atom(max_atoms))
-    N_energy = int(photo_photon_energy/jdos_spacing)
 
     allocate (bulk_esc_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
@@ -975,7 +975,7 @@ contains
     use od_constants, only: pi, kB
 
     integer :: N,N2 , N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy
+    integer :: angle
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
     real(kind=dp) :: kbT, fermi_dirac, t_den, qe_factor, argument
@@ -985,8 +985,6 @@ contains
     width = (1.0_dp/11604.45_dp)*photo_temperature
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
-
-    N_energy = int(photo_photon_energy/jdos_spacing)
 
     if (allocated(epsilon)) then
       deallocate (epsilon, stat=ierr)
@@ -1192,7 +1190,7 @@ contains
     use od_constants, only: pi, kB
 
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy, transitions_den, transitions_num
+    integer :: angle, transitions_den, transitions_num
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
     integer :: matrix_unit = 25
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
@@ -1202,8 +1200,6 @@ contains
     width = (1.0_dp/11604.45_dp)*photo_temperature
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
-
-    N_energy = int(photo_photon_energy/jdos_spacing)
 
     if (allocated(epsilon)) then
       deallocate (epsilon, stat=ierr)
@@ -1551,7 +1547,7 @@ contains
     use od_jdos_utils, only: jdos_nbins, E
 
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy, transitions_den, transitions_num
+    integer :: angle, transitions_den, transitions_num
     real(kind=dp) :: mean_te
     real(kind=dp), allocatable, dimension(:, :, :, :, :) :: te_tsm_temp
     real(kind=dp), allocatable, dimension(:, :, :, :) :: te_osm_temp
