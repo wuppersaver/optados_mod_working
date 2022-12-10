@@ -752,9 +752,9 @@ contains
     endif
     !Photoemission
     if(photo) then
-       write(stdout,'(1x,a78)') '|  Photoemission Calculation                 :   True                         |'
+      write (stdout, '(1x,a78)') '|  Photoemission Calculation                 :   True                        |'
     else
-       write(stdout,'(1x,a78)') '|  Photoemission Calculation                 :   False                        |'
+      write (stdout, '(1x,a78)') '|  Photoemission Calculation                 :   False                       |'
     endif
     write (stdout, '(1x,a46,2x,i3,26x,a1)') '|  iprint level                              :', iprint, '|'
     if (legacy_file_format) then
@@ -790,7 +790,7 @@ contains
     if (finite_bin_correction) &
       write (stdout, '(1x,a78)') '|  Finite Bin Correction                     :  True                         |'
     if (hybrid_linear) then
-      write (stdout, '(1x,a78)') '|  Hybrid Linear Correction                     :  True                         |'
+      write (stdout, '(1x,a78)') '|  Hybrid Linear Correction                     :  True                      |'
       write (stdout, '(1x,a46,2x,F10.8,19x,a1)') '|  Hybrid Linear Gradient Tolerance             :', hybrid_linear_grad_tol, '|'
     endif
     if (numerical_intdos) &

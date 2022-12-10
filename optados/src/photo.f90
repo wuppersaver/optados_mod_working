@@ -81,7 +81,7 @@ module od_photo
   real(kind=dp) :: total_field_emission
   real(kind=dp), allocatable, dimension(:, :, :) :: field_emission
   integer, allocatable, dimension(:) :: layer
-  !integer :: N_geom
+  integer :: N_geom
   integer :: max_atoms
   integer :: max_doubling_atom
   integer :: max_layer
@@ -347,7 +347,7 @@ contains
 
     use od_optics, only: make_weights, calc_epsilon_2, calc_epsilon_1, &
                          calc_refract, calc_absorp, calc_reflect, epsilon, refract, absorp, reflect, &
-                         intra, N_geom
+                         intra
     use od_io, only: stdout, io_error
     use od_electronic, only: optical_mat, elec_read_optical_mat, nbands, nspins, &
                              efermi, efermi_set, elec_dealloc_optical, &
@@ -376,7 +376,7 @@ contains
     N_energy = int(photo_photon_energy/jdos_spacing)
 
     call make_weights(matrix_weights)
-    
+    N_geom = size(matrix_weights, 5)
     ! !! Taken from optics.f90 because N_geom is redefined here and has to be re-initialised !!
     ! if (.not. index(optics_geom, 'tensor') > 0) then ! I can rewrite this in a simplier way??
     !   N_geom = 1
@@ -973,7 +973,6 @@ contains
     use od_jdos_utils, only: jdos_utils_calculate
     use od_jdos_utils, only: jdos_nbins, E
     use od_constants, only: pi, kB
-    use od_optics, only: N_geom
 
     integer :: N,N2 , N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
     integer :: angle
@@ -1354,7 +1353,6 @@ contains
     !===============================================================================
 
     use od_constants, only: dp
-    use od_optics, only: N_geom
     use od_electronic, only: nbands, nspins, optical_mat, num_electrons, &
                              electrons_per_state, band_energy, efermi, foptical_mat
     use od_cell, only: nkpoints, cell_volume, num_kpoints_on_node, cell_get_symmetry, &
@@ -1642,7 +1640,7 @@ contains
       write (stdout, '(1x,a78)') '+------------------------------ Photoemission -------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a5)') '| Work Function', photo_work_function, &
-        'eV          PhotonEnergy', photo_photon_energy, 'eV  |'
+        'eV          Photon Energy', photo_photon_energy, 'eV  |'
       write (stdout, '(a26,f10.4,1x,a26,f10.4,a6)') '| Effective Work Function', work_function_eff, &
         ' eV        Electric field', photo_elec_field, 'V/A  |'
       write (stdout, '(1x,a78)') '| Final state : Free electron state                                          |'

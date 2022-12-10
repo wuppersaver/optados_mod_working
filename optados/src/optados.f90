@@ -211,7 +211,7 @@ program optados
     if (on_root) then
       write (stdout, '(1x,a78)') '|                                                                            |'
       write (stdout, '(1x,a59,f11.3,a8)') &
-        '+ Time to calculate Photoemission                        ', time1 - time0, ' (sec) +'
+        '+ Time to calculate Photoemission                          ', time1 - time0, ' (sec) +'
       write (stdout, '(1x,a78)') '+============================================================================+'
       write (stdout, *) ' '
       write (stdout, *) ' '
