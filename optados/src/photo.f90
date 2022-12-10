@@ -81,12 +81,16 @@ module od_photo
   real(kind=dp) :: total_field_emission
   real(kind=dp), allocatable, dimension(:, :, :) :: field_emission
   integer, allocatable, dimension(:) :: layer
-  integer :: N_geom
+  !integer :: N_geom
   integer :: max_atoms
   integer :: max_doubling_atom
   integer :: max_layer
   real(kind=dp) :: e_fermi
   real(kind=dp) :: q_weight
+
+  ! Added by Felix Mildner, 12/2022
+
+  integer :: N_energy
 contains
 
   subroutine photo_calculate
@@ -343,7 +347,7 @@ contains
 
     use od_optics, only: make_weights, calc_epsilon_2, calc_epsilon_1, &
                          calc_refract, calc_absorp, calc_reflect, epsilon, refract, absorp, reflect, &
-                         intra
+                         intra, N_geom
     use od_io, only: stdout, io_error
     use od_electronic, only: optical_mat, elec_read_optical_mat, nbands, nspins, &
                              efermi, efermi_set, elec_dealloc_optical, &
@@ -361,10 +365,10 @@ contains
 
     real(kind=dp), allocatable, dimension(:, :, :, :) :: dos_matrix_weights
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e
-    real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
+    !real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
 
-    integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr, N_energy
+    integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr
     integer :: jdos_bin,i,s
 
     allocate (absorp_photo(jdos_nbins, max_atoms))
@@ -373,12 +377,12 @@ contains
 
     call make_weights(matrix_weights)
     
-    !! Taken from optics.f90 because N_geom is redefined here and has to be re-initialised !!
-    if (.not. index(optics_geom, 'tensor') > 0) then ! I can rewrite this in a simplier way??
-      N_geom = 1
-    elseif (index(optics_geom, 'tensor') > 0) then
-      N_geom = 6
-    end if
+    ! !! Taken from optics.f90 because N_geom is redefined here and has to be re-initialised !!
+    ! if (.not. index(optics_geom, 'tensor') > 0) then ! I can rewrite this in a simplier way??
+    !   N_geom = 1
+    ! elseif (index(optics_geom, 'tensor') > 0) then
+    !   N_geom = 6
+    ! end if
 
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
@@ -390,9 +394,6 @@ contains
     end if
     
     do atom = 1, max_atoms                           ! Loop over atoms
-      
-      
-        
       allocate (projected_matrix_weights(nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
       if (ierr /= 0) call io_error('Error: make_photo_weights - allocation of projected matrix_weights failed')
 
@@ -507,186 +508,6 @@ contains
 
   end subroutine calc_photo_optics
 
-  !===============================================================================
-  subroutine make_foptical_weights
-    !===============================================================================
-    ! This subroutine calclualtes te optical matrix elements for the one step
-    ! photoemission model.
-    ! Victor Chang, 7th February 2020
-    !===============================================================================
-
-    use od_constants, only: dp
-    use od_electronic, only: nbands, nspins, optical_mat, num_electrons, &
-                             electrons_per_state, band_energy, efermi, foptical_mat
-    use od_cell, only: nkpoints, cell_volume, num_kpoints_on_node, cell_get_symmetry, &
-                       num_crystal_symmetry_operations, crystal_symmetry_operations, num_atoms
-    use od_parameters, only: optics_geom, optics_qdir, legacy_file_format, scissor_op, devel_flag, photo_photon_energy, iprint
-    use od_io, only: io_error,stdout
-    use od_comms, only: my_node_id,on_root
-
-    real(kind=dp), dimension(3) :: qdir
-    real(kind=dp), dimension(3) :: qdir1
-    real(kind=dp), dimension(3) :: qdir2
-    real(kind=dp) :: q_weight1
-    real(kind=dp) :: q_weight2
-    integer :: N, i, j, N_2
-    integer :: N_in
-    integer :: N_spin, N_spin_2
-    integer :: N2, N3
-    integer :: n_eigen, n_eigen_2
-    integer :: n_eigen2, n_eigen2_2
-    integer :: num_symm
-    integer :: ierr
-    real(kind=dp), dimension(2) :: num_occ
-    complex(kind=dp), dimension(3) :: g
-    real(kind=dp) :: factor
-    real(kind=dp) :: test
-
-    if (.not. legacy_file_format .and. index(devel_flag, 'old_filename') > 0) then
-      num_symm = 0
-      call cell_get_symmetry
-    end if
-    num_symm = num_crystal_symmetry_operations
-
-    num_occ = 0.0_dp
-    do N_spin = 1, nspins
-      num_occ(N_spin) = num_electrons(N_spin)
-    end do
-
-    if (electrons_per_state == 2) then
-      num_occ(1) = num_occ(1)/2.0_dp
-    end if
-
-    N_geom = 1
-
-    allocate (foptical_matrix_weights(nbands + 1, nbands + 1, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
-    if (ierr /= 0) call io_error('Error: make_optical_weights - allocation of foptical_matrix_weights failed')
-    foptical_matrix_weights = 0.0_dp
-
-    if (index(optics_geom, 'polar') > 0) then
-      qdir = optics_qdir
-      q_weight = ((qdir(1)**2) + (qdir(2)**2) + (qdir(3)**2))**0.5_dp
-      if (q_weight < 0.001_dp) &
-        call io_error("Error:  please check optics_qdir, norm close to zero")
-    end if
-
-    if (index(optics_geom, 'unpolar') > 0) then
-      !TO CHANGE WHEN THE light_direction IS CORRECTED
-      !optics_qdir(:)=t_cart(:)
-      if (optics_qdir(3) .lt. 1E-06) then
-        qdir1(1) = 0.0_dp
-        qdir1(2) = 0.0_dp
-        qdir1(3) = 1.0_dp
-      else
-        qdir1(1) = 1.0_dp
-        qdir1(2) = 1.0_dp
-        qdir1(3) = -(optics_qdir(1) + optics_qdir(2))/optics_qdir(3)
-      end if
-      qdir2(1) = (optics_qdir(2)*qdir1(3)) - (optics_qdir(3)*qdir1(2))
-      qdir2(2) = (optics_qdir(3)*qdir1(1)) - (optics_qdir(1)*qdir1(3))
-      qdir2(3) = (optics_qdir(1)*qdir1(2)) - (optics_qdir(2)*qdir1(1))
-      q_weight1 = ((qdir1(1)**2) + (qdir1(2)**2) + (qdir1(3)**2))**0.5_dp
-      q_weight2 = ((qdir2(1)**2) + (qdir2(2)**2) + (qdir2(3)**2))**0.5_dp
-    end if
-
-    N_in = 1  ! 0 = no inversion, 1 = inversion
-    g = 0.0_dp
-
-    do N = 1, num_kpoints_on_node(my_node_id)                   ! Loop over kpoints
-      do N_spin = 1, nspins                                    ! Loop over spins
-        do n_eigen = 1, nbands                                ! Loop over state 1
-          factor = 1.0_dp/(photo_photon_energy**2)
-          if (index(optics_geom, 'unpolar') > 0) then
-            if (num_symm == 0) then
-              g(1) = (((qdir1(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
-                       (qdir1(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
-                       (qdir1(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight1)
-              g(2) = (((qdir2(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
-                       (qdir2(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
-                       (qdir2(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight2)
-              foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
-                0.5_dp*factor*(real(g(1)*conjg(g(1)), dp) + real(g(2)*conjg(g(2)), dp))
-            else ! begin unpolar symmetric
-              do N2 = 1, num_symm
-                do N3 = 1, 1 + N_in
-                  do i = 1, 3
-                    qdir(i) = 0.0_dp
-                    do j = 1, 3
-                      qdir(i) = qdir(i) + ((-1.0_dp)**(N3 + 1))* &
-                                (crystal_symmetry_operations(j, i, N2)*qdir1(j))
-                    end do
-                  end do
-                  g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
-                           (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
-                           (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight1)
-                  foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
-                    foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) + &
-                    (0.5_dp/Real((num_symm*(N_in + 1)), dp))*real(g(1)*conjg(g(1)), dp)*factor
-                  g(1) = 0.0_dp
-                  do i = 1, 3 ! if I include an extra variable I can merge this and the last do loops
-                    qdir(i) = 0.0_dp
-                    do j = 1, 3
-                      qdir(i) = qdir(i) + ((-1.0_dp)**(N3 + 1))* &
-                                (crystal_symmetry_operations(j, i, N2)*qdir2(j))
-                    end do
-                  end do
-                  g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
-                           (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
-                           (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight2)
-                  foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
-                    foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) + &
-                    (0.5_dp/Real((num_symm*(N_in + 1)), dp))*real(g(1)*conjg(g(1)), dp)*factor
-                end do
-              end do
-            end if !end unpolar symmetric
-          elseif (index(optics_geom, 'polar') > 0) then
-            if (num_symm == 0) then
-              g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
-                       (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
-                       (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight)
-              foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = factor*real(g(1)*conjg(g(1)), dp)
-            else !begin polar symmetric
-              do N2 = 1, num_symm
-                do N3 = 1, 1 + N_in
-                  do i = 1, 3
-                    qdir(i) = 0.0_dp
-                    do j = 1, 3
-                      qdir(i) = qdir(i) + ((-1.0_dp)**(N3 + 1))* &
-                                (crystal_symmetry_operations(j, i, N2)*optics_qdir(j))
-                    end do
-                  end do
-                  g(1) = 0.0_dp
-                  g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
-                           (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
-                           (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight)
-                  foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
-                    foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) + &
-                    (1.0_dp/Real((num_symm*(N_in + 1)), dp))*factor*real(g(1)*conjg(g(1)), dp)
-                end do
-              end do
-            end if !end polar symmetric
-          end if ! end photo_geom
-        end do       ! Loop over state 1
-      end do           ! Loop over spins
-    end do               ! Loop over kpoints
-    
-    if (iprint .eq. 4 .and. on_root) then
-      write (stdout, '(1x,a78)') '+------------------------- Printing Free OM Weights -------------------------+'
-      write (stdout, 126) shape(foptical_matrix_weights)
-      write (stdout, 126) nbands+1, nbands+1, num_kpoints_on_node(my_node_id), nspins, N_geom
-      126 format(5(1x,I4))
-      do N2=1,N_geom
-        do N_spin=1, nspins
-          do N=1, num_kpoints_on_node(my_node_id)
-            write(stdout,'(99999(es15.8))') ((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),n_eigen2=1,nbands+1),&
-            n_eigen=1,nbands+1)
-          end do
-        end do
-      end do
-      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
-    end if
-  end subroutine make_foptical_weights
-
   !***************************************************************
   subroutine calc_absorp_layer
     !***************************************************************
@@ -701,7 +522,7 @@ contains
     real(kind=dp), dimension(:), allocatable :: light_path
     real(kind=dp), dimension(:, :), allocatable :: attenuation_layer
     real(kind=dp) :: transmittance
-    integer :: atom, i, N_energy, ierr, first_atom_second_l, last_atom_secondlast_l
+    integer :: atom, i, ierr, first_atom_second_l, last_atom_secondlast_l
     real(kind=dp) :: I_0
     integer :: jdos_bin, num_layer
 
@@ -772,7 +593,6 @@ contains
       light_path(atom) = thickness_atom(atom)
     end do
 
-    N_energy = int(photo_photon_energy/jdos_spacing)
     attenuation_layer = 1.0_dp
 
     do atom = 1, max_atoms
@@ -815,158 +635,6 @@ contains
 
   end subroutine calc_absorp_layer
 
-  !***************************************************************
-  subroutine calc_electron_esc
-    !***************************************************************
-    ! This subroutine calculates the electron escape depth
-
-    use od_constants, only: dp, deg_to_rad
-    use od_electronic, only: nbands, nspins, band_energy, efermi
-    use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
-                       atoms_pos_cart_photo
-    use od_io, only: io_error, stdout
-    use od_comms, only: my_node_id, on_root
-    use od_parameters, only: photo_imfp_const, iprint
-
-    integer :: atom, N, N_spin, n_eigen, ierr
-    real(kind=dp) :: x, g2, efermi_scaled, a !(Evacuum-Ef)
-
-    allocate (new_atoms_coordinates(3, max_atoms), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of new_atoms_coordinates failed')
-
-    !Redefine new z coordinates where the first layer is at z=0
-    new_atoms_coordinates = atoms_pos_cart_photo
-    do atom = 1, max_atoms
-      new_atoms_coordinates(3, atom_order(atom)) = atoms_pos_cart_photo(3, atom_order(atom)) - &
-                                                   (atoms_pos_cart_photo(3, atom_order(1)))
-    end do
-
-    allocate (electron_esc(nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
-    electron_esc = 0.0_dp
-
-    do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
-      do N_spin = 1, nspins                    ! Loop over spins
-        do n_eigen = 1, nbands
-          do atom = 1, max_atoms
-            if (cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad) .gt. 0.0_dp) then
-              electron_esc(n_eigen, N, N_spin, atom) = &
-                exp((new_atoms_coordinates(3, atom_order(atom))/ &
-                     cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad))/photo_imfp_const)
-            end if
-          end do
-        end do
-      end do
-    end do
-
-    if (iprint .eq. 4 .and. on_root) then
-      write (stdout, '(1x,a78)') '+----------------------- Printing P(Escape) per Layer -----------------------+'
-      write (stdout, 125) shape(electron_esc)
-      write (stdout, 125) nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms
-      125 format(4(1x,I4))
-      write(stdout,'(9999(es15.8))') ((((electron_esc(n_eigen,N,N_spin,atom),atom=1,max_atoms),N_spin=1,nspins),&
-      N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
-      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
-    end if
-
-  end subroutine calc_electron_esc
-
-  !***************************************************************
-  subroutine bulk_emission
-    !***************************************************************
-    ! This subroutine calculates the electron escape depth
-
-    use od_constants, only: dp, deg_to_rad
-    use od_electronic, only: nbands, nspins, band_energy, efermi
-    use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
-                       atoms_pos_cart_photo, num_atoms, num_species
-    use od_comms, only: my_node_id
-    use od_parameters, only: photo_imfp_const, photo_photon_energy, jdos_spacing, bulk_length
-    use od_jdos_utils, only: jdos_nbins, E
-    use od_io, only: stdout, io_error
-
-    real(kind=dp), dimension(:, :, :, :), allocatable :: bulk_esc_tmp
-    real(kind=dp), dimension(:), allocatable :: bulk_light_tmp
-    real(kind=dp), dimension(:, :, :, :), allocatable :: bulk_prob_tmp
-    real(kind=dp) :: bulk_thickness
-    integer :: N, N_spin, n_eigen, i, N_energy, num_layers
-    integer :: atom, ierr
-
-    num_layers = int((photo_imfp_const*bulk_length)/thickness_atom(max_atoms))
-    N_energy = int(photo_photon_energy/jdos_spacing)
-
-    allocate (bulk_esc_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
-    bulk_esc_tmp = 0.0_dp
-    allocate (bulk_light_tmp(num_layers), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
-    bulk_light_tmp = 0.0_dp
-    allocate (bulk_prob_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
-    bulk_prob_tmp = 0.0_dp
-    allocate (bulk_prob(nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
-    bulk_prob = 0.0_dp
-
-    do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
-      do N_spin = 1, nspins                    ! Loop over spins
-        do n_eigen = 1, nbands
-          if (cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad) .gt. 0.0_dp) then
-            do i = 1, num_layers
-              bulk_esc_tmp(n_eigen, N, N_spin, i) = &
-                (exp(((new_atoms_coordinates(3, atom_order(max_atoms)) - &
-                       i*thickness_atom(max_atoms)/ &
-                       cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad)))/photo_imfp_const))
-            end do
-          end if
-        end do
-      end do
-    end do
-
-    bulk_light_tmp(1) = I_layer(N_energy, layer(max_atoms))* &
-                        exp(-(absorp_photo(N_energy, max_atoms)*thickness_atom(max_atoms)*1E-10))
-    do i = 2, num_layers
-      bulk_light_tmp(i) = bulk_light_tmp(i - 1)* &
-                          exp(-(absorp_photo(N_energy, max_atoms)*i*thickness_atom(max_atoms)*1E-10))
-    end do
-    do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
-      do N_spin = 1, nspins                    ! Loop over spins
-        do n_eigen = 1, nbands
-          do i = 1, num_layers
-            bulk_prob_tmp(n_eigen, N, N_spin, i) = &
-              bulk_esc_tmp(n_eigen, N, N_spin, i)*bulk_light_tmp(i)
-          end do
-          bulk_prob(n_eigen, N, N_spin) = &
-            sum(bulk_prob_tmp(n_eigen, N, N_spin, 1:num_layers))
-        end do
-      end do
-    end do
-
-    if (allocated(bulk_esc_tmp)) then
-      deallocate (bulk_esc_tmp, stat=ierr)
-      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate')
-    end if
-    if (allocated(bulk_light_tmp)) then
-      deallocate (bulk_light_tmp, stat=ierr)
-      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate')
-    end if
-    if (allocated(bulk_prob_tmp)) then
-      deallocate (bulk_prob_tmp, stat=ierr)
-      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate')
-    end if
-
-    if (allocated(new_atoms_coordinates)) then
-      deallocate (new_atoms_coordinates, stat=ierr)
-      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate new_atoms_coordinates')
-    end if
-
-    if (allocated(thickness_atom)) then
-      deallocate (thickness_atom, stat=ierr)
-      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate thickness_atom')
-    end if
-
-  end subroutine bulk_emission
-
   !===============================================================================
   subroutine calc_angle
     !===============================================================================
@@ -994,12 +662,10 @@ contains
     use od_constants, only: hbar, ev_to_j, j_to_ev, e_mass, rad_to_deg
 
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy, transitions_den, transitions_num
+    integer :: angle, transitions_den, transitions_num
 
     real(kind=dp), allocatable, dimension(:, :, :):: E_x
     real(kind=dp), allocatable, dimension(:, :, :):: E_y
-
-    N_energy = int(photo_photon_energy/jdos_spacing)
 
     allocate (E_x(nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_quantum_efficiency - allocation of qe_numerator failed')
@@ -1109,6 +775,180 @@ contains
 
   end subroutine calc_angle
 
+  !***************************************************************
+  subroutine calc_electron_esc
+    !***************************************************************
+    ! This subroutine calculates the electron escape depth
+
+    use od_constants, only: dp, deg_to_rad
+    use od_electronic, only: nbands, nspins, band_energy, efermi
+    use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
+                       atoms_pos_cart_photo
+    use od_io, only: io_error, stdout
+    use od_comms, only: my_node_id, on_root
+    use od_parameters, only: photo_imfp_const, iprint
+
+    integer :: atom, N, N_spin, n_eigen, ierr
+    real(kind=dp) :: x, g2, efermi_scaled, a !(Evacuum-Ef)
+
+    allocate (new_atoms_coordinates(3, max_atoms), stat=ierr)
+    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of new_atoms_coordinates failed')
+
+    !Redefine new z coordinates where the first layer is at z=0
+    new_atoms_coordinates = atoms_pos_cart_photo
+    do atom = 1, max_atoms
+      new_atoms_coordinates(3, atom_order(atom)) = atoms_pos_cart_photo(3, atom_order(atom)) - &
+                                                   (atoms_pos_cart_photo(3, atom_order(1)))
+    end do
+
+    allocate (electron_esc(nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms), stat=ierr)
+    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
+    electron_esc = 0.0_dp
+
+    do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
+      do N_spin = 1, nspins                    ! Loop over spins
+        do n_eigen = 1, nbands
+          do atom = 1, max_atoms
+            if (cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad) .gt. 0.0_dp) then
+              electron_esc(n_eigen, N, N_spin, atom) = &
+                exp((new_atoms_coordinates(3, atom_order(atom))/ &
+                     cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad))/photo_imfp_const)
+            end if
+          end do
+        end do
+      end do
+    end do
+
+    if (iprint .eq. 4 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------- Printing P(Escape) per Layer -----------------------+'
+      write (stdout, 125) shape(electron_esc)
+      write (stdout, 125) nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms
+      125 format(4(1x,I4))
+      write(stdout,'(9999(es15.8))') ((((electron_esc(n_eigen,N,N_spin,atom),atom=1,max_atoms),N_spin=1,nspins),&
+      N=1,num_kpoints_on_node(my_node_id)),n_eigen=1,nbands)
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+    end if
+
+  end subroutine calc_electron_esc
+
+  !***************************************************************
+  subroutine bulk_emission
+    !***************************************************************
+    ! This subroutine calculates the electron escape depth
+
+    use od_constants, only: dp, deg_to_rad
+    use od_electronic, only: nbands, nspins, band_energy, efermi
+    use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
+                       atoms_pos_cart_photo, num_atoms, num_species
+    use od_comms, only: my_node_id
+    use od_parameters, only: photo_imfp_const, photo_photon_energy, jdos_spacing, bulk_length
+    use od_jdos_utils, only: jdos_nbins, E
+    use od_io, only: stdout, io_error
+
+    real(kind=dp), dimension(:, :, :, :), allocatable :: bulk_esc_tmp
+    real(kind=dp), dimension(:), allocatable :: bulk_light_tmp
+    real(kind=dp), dimension(:, :, :, :), allocatable :: bulk_prob_tmp
+    real(kind=dp) :: bulk_thickness
+    integer :: N, N_spin, n_eigen, i, num_layers
+    integer :: atom, ierr
+
+    num_layers = int((photo_imfp_const*bulk_length)/thickness_atom(max_atoms))
+
+    allocate (bulk_esc_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
+    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
+    bulk_esc_tmp = 0.0_dp
+    allocate (bulk_light_tmp(num_layers), stat=ierr)
+    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
+    bulk_light_tmp = 0.0_dp
+    allocate (bulk_prob_tmp(nbands, num_kpoints_on_node(my_node_id), nspins, num_layers), stat=ierr)
+    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
+    bulk_prob_tmp = 0.0_dp
+    allocate (bulk_prob(nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
+    if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of electron_esc failed')
+    bulk_prob = 0.0_dp
+
+    do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
+      do N_spin = 1, nspins                    ! Loop over spins
+        do n_eigen = 1, nbands
+          if (cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad) .gt. 0.0_dp) then
+            do i = 1, num_layers
+              bulk_esc_tmp(n_eigen, N, N_spin, i) = &
+                (exp(((new_atoms_coordinates(3, atom_order(max_atoms)) - &
+                       i*thickness_atom(max_atoms)/ &
+                       cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad)))/photo_imfp_const))
+            end do
+          end if
+        end do
+      end do
+    end do
+
+    bulk_light_tmp(1) = I_layer(N_energy, layer(max_atoms))* &
+                        exp(-(absorp_photo(N_energy, max_atoms)*thickness_atom(max_atoms)*1E-10))
+    do i = 2, num_layers
+      bulk_light_tmp(i) = bulk_light_tmp(i - 1)* &
+                          exp(-(absorp_photo(N_energy, max_atoms)*i*thickness_atom(max_atoms)*1E-10))
+    end do
+    do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
+      do N_spin = 1, nspins                    ! Loop over spins
+        do n_eigen = 1, nbands
+          do i = 1, num_layers
+            bulk_prob_tmp(n_eigen, N, N_spin, i) = &
+              bulk_esc_tmp(n_eigen, N, N_spin, i)*bulk_light_tmp(i)
+          end do
+          bulk_prob(n_eigen, N, N_spin) = &
+            sum(bulk_prob_tmp(n_eigen, N, N_spin, 1:num_layers))
+        end do
+      end do
+    end do
+
+    if (allocated(bulk_esc_tmp)) then
+      deallocate (bulk_esc_tmp, stat=ierr)
+      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate')
+    end if
+    if (allocated(bulk_light_tmp)) then
+      deallocate (bulk_light_tmp, stat=ierr)
+      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate')
+    end if
+    if (allocated(bulk_prob_tmp)) then
+      deallocate (bulk_prob_tmp, stat=ierr)
+      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate')
+    end if
+
+    if (allocated(new_atoms_coordinates)) then
+      deallocate (new_atoms_coordinates, stat=ierr)
+      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate new_atoms_coordinates')
+    end if
+
+    if (allocated(thickness_atom)) then
+      deallocate (thickness_atom, stat=ierr)
+      if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate thickness_atom')
+    end if
+
+  end subroutine bulk_emission
+
+  !***************************************************************
+  subroutine effect_wf
+    !***************************************************************
+    !photo_elec_field given in eV/A
+
+    use od_parameters, only: photo_work_function, photo_elec_field
+    use od_electronic, only: efermi
+    use od_constants, only: pi, epsilon_zero
+
+    !  real(kind=dp) :: z
+
+    !  z=sqrt((1/(16*pi*epsilon_zero*1E-4))/photo_elec_field)
+
+    !  work_function_eff = photo_work_function - photo_elec_field*z -(1/(16*pi*epsilon_zero*1E-4))/z
+
+    !  evacuum_eff = work_function_eff + efermi
+
+    work_function_eff = photo_work_function - sqrt(photo_elec_field/(4*pi*epsilon_zero*1E-4))
+
+    evacuum_eff = work_function_eff + efermi
+
+  end subroutine effect_wf
+
   !===============================================================================
   subroutine calc_three_step_model
     !===============================================================================
@@ -1133,9 +973,10 @@ contains
     use od_jdos_utils, only: jdos_utils_calculate
     use od_jdos_utils, only: jdos_nbins, E
     use od_constants, only: pi, kB
+    use od_optics, only: N_geom
 
     integer :: N,N2 , N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy
+    integer :: angle
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
     real(kind=dp) :: kbT, fermi_dirac, t_den, qe_factor, argument
@@ -1145,8 +986,6 @@ contains
     width = (1.0_dp/11604.45_dp)*photo_temperature
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
-
-    N_energy = int(photo_photon_energy/jdos_spacing)
 
     if (allocated(epsilon)) then
       deallocate (epsilon, stat=ierr)
@@ -1352,7 +1191,7 @@ contains
     use od_constants, only: pi, kB
 
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy, transitions_den, transitions_num
+    integer :: angle, transitions_den, transitions_num
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
     integer :: matrix_unit = 25
     real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
@@ -1362,8 +1201,6 @@ contains
     width = (1.0_dp/11604.45_dp)*photo_temperature
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
     norm_vac = gaussian(0.0_dp, width, 0.0_dp)
-
-    N_energy = int(photo_photon_energy/jdos_spacing)
 
     if (allocated(epsilon)) then
       deallocate (epsilon, stat=ierr)
@@ -1509,196 +1346,183 @@ contains
   end subroutine calc_one_step_model
 
   !===============================================================================
-  subroutine jdos_utils_calculate_delta(delta_temp)
+  subroutine make_foptical_weights
     !===============================================================================
-    ! It is required to evaluate the delta funcion.
+    ! This subroutine calclualtes te optical matrix elements for the one step
+    ! photoemission model.
     ! Victor Chang, 7th February 2020
     !===============================================================================
-    use od_parameters, only: linear, fixed, adaptive, quad, iprint, dos_per_volume
-    use od_electronic, only: elec_read_band_gradient, band_gradient, nspins, electrons_per_state, &
-                             num_electrons, efermi_set
-    use od_comms, only: on_root
-    use od_io, only: stdout, io_error, io_time
-    use od_cell, only: cell_volume
-    use od_dos_utils, only: dos_utils_set_efermi
-    use od_jdos_utils, only: setup_energy_scale
 
-    implicit none
+    use od_constants, only: dp
+    use od_optics, only: N_geom
+    use od_electronic, only: nbands, nspins, optical_mat, num_electrons, &
+                             electrons_per_state, band_energy, efermi, foptical_mat
+    use od_cell, only: nkpoints, cell_volume, num_kpoints_on_node, cell_get_symmetry, &
+                       num_crystal_symmetry_operations, crystal_symmetry_operations, num_atoms
+    use od_parameters, only: optics_geom, optics_qdir, legacy_file_format, scissor_op, devel_flag, photo_photon_energy, iprint
+    use od_io, only: io_error,stdout
+    use od_comms, only: my_node_id,on_root
+
+    real(kind=dp), dimension(3) :: qdir
+    real(kind=dp), dimension(3) :: qdir1
+    real(kind=dp), dimension(3) :: qdir2
+    real(kind=dp) :: q_weight1
+    real(kind=dp) :: q_weight2
+    integer :: N, i, j, N_2
+    integer :: N_in
+    integer :: N_spin, N_spin_2
+    integer :: N2, N3
+    integer :: n_eigen, n_eigen_2
+    integer :: n_eigen2, n_eigen2_2
+    integer :: num_symm
     integer :: ierr
-    real(kind=dp) :: time0, time1
+    real(kind=dp), dimension(2) :: num_occ
+    complex(kind=dp), dimension(3) :: g
+    real(kind=dp) :: factor
+    real(kind=dp) :: test
 
-    real(kind=dp), intent(out), allocatable, optional    :: delta_temp(:, :, :, :)  !I've added this
-    real(kind=dp), allocatable :: jdos_adaptive(:, :)
-    real(kind=dp), allocatable :: jdos_fixed(:, :)
-    real(kind=dp), allocatable :: jdos_linear(:, :)
-
-    !-------------------------------------------------------------------------------
-    ! R E A D   B A N D   G R A D I E N T S
-    ! If we're using one of the more accurate roadening schemes we also need to read in the
-    ! band gradients too
-    if (quad .or. linear .or. adaptive) then
-      if (.not. allocated(band_gradient)) call elec_read_band_gradient
+    if (.not. legacy_file_format .and. index(devel_flag, 'old_filename') > 0) then
+      num_symm = 0
+      call cell_get_symmetry
     end if
-    !-------------------------------------------------------------------------------
+    num_symm = num_crystal_symmetry_operations
 
-    if (.not. efermi_set) call dos_utils_set_efermi
-
-    time0 = io_time()
-
-    call setup_energy_scale(E)
-
-    if (fixed) then
-      call calculate_delta('f', delta_temp)
-    end if
-    if (adaptive) then
-      call calculate_delta('a', delta_temp)
-
-    end if
-    if (linear) then
-      call calculate_delta('l', delta_temp)
-    end if
-
-    if (quad) then
-      call io_error("quadratic broadening not implemented")
-    end if
-
-    time1 = io_time()
-    if (on_root .and. iprint > 1) then
-      write (stdout, '(1x,a59,f11.3,a8)') &
-           '+ Time to calculate Joint Density of States              &
-           &      ', time1 - time0, ' (sec) +'
-    end if
-    !-------------------------------------------------------------------------------
-
-    if (dos_per_volume) then
-    if (fixed) then
-      jdos_fixed = jdos_fixed/cell_volume
-    end if
-    if (adaptive) then
-      jdos_adaptive = jdos_adaptive/cell_volume
-    end if
-    if (linear) then
-      jdos_linear = jdos_linear/cell_volume
-    end if
-
-    ! if(quad) then
-    !    dos_quad=dos_quad/cell_volume
-    !    intdos_quad=intdos_quad/cell_volume
-    ! endif
-    end if
-
-  end subroutine jdos_utils_calculate_delta
-
-  !===============================================================================
-  subroutine calculate_delta(delta_type, delta_temp)
-    !===============================================================================
-    ! This subroutine evaluates the delta function between the valence band
-    ! and the conduction band using the method specified in the input.
-    ! Victor Chang, 7 February 2020
-    !===============================================================================
-    use od_comms, only: my_node_id, on_root
-    use od_cell, only: num_kpoints_on_node, kpoint_grid_dim, kpoint_weight,&
-         &recip_lattice, num_atoms
-    use od_parameters, only: adaptive_smearing, fixed_smearing, iprint, &
-         &finite_bin_correction, scissor_op, hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
-         photo, photo_photon_energy, jdos_spacing
-    use od_io, only: io_error, stdout
-    use od_electronic, only: band_gradient, nbands, band_energy, nspins, electrons_per_state, &
-         & efermi
-    use od_dos_utils, only: doslin, doslin_sub_cell_corners
-    use od_algorithms, only: gaussian
-    implicit none
-
-    integer :: ik, is, ib, idos, jb, i
-    integer :: N, N_spin, n_eigen, n_eigen2, atom
-    integer :: N2, N_geom, ierr
-    real(kind=dp) :: cuml, width, adaptive_smearing_temp, dos_test
-    real(kind=dp) :: grad(1:3), step(1:3), EV(0:4), sub_cell_length(1:3)
-
-    character(len=1), intent(in)                      :: delta_type
-    real(kind=dp), intent(inout), allocatable, optional :: delta_temp(:, :, :, :)
-    logical :: linear, fixed, adaptive, force_adaptive
-
-    linear = .false.
-    fixed = .false.
-    adaptive = .false.
-
-    select case (delta_type)
-    case ("l")
-      linear = .true.
-    case ("a")
-      adaptive = .true.
-    case ("f")
-      fixed = .true.
-    case default
-      call io_error(" ERROR : unknown jdos_type in jcalculate_dos ")
-    end select
-
-    width = 0.0_dp
-
-    if (linear .or. adaptive) step(:) = 1.0_dp/real(kpoint_grid_dim(:), dp)/2.0_dp
-    if (adaptive .or. hybrid_linear) then
-      do i = 1, 3
-        sub_cell_length(i) = sqrt(recip_lattice(i, 1)**2 + recip_lattice(i, 2)**2 + recip_lattice(i, 3)**2)*step(i)
-      end do
-      adaptive_smearing_temp = adaptive_smearing*sum(sub_cell_length)/3.0_dp
-    end if
-
-    if (fixed) width = fixed_smearing
-
-    allocate (delta_temp(nbands, nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calculate_jdos - failed to allocate weighted_jdos')
-    delta_temp = 0.0_dp
-    if (iprint > 1 .and. on_root) then
-      write (stdout, '(1x,a78)') '+------------------------------ Calculate JDOS ------------------------------+'
-    end if
-
-    do ik = 1, num_kpoints_on_node(my_node_id)
-      if (iprint > 1 .and. on_root) then
-        if (mod(real(ik, dp), 10.0_dp) == 0.0_dp) write (stdout, '(1x,a1,a38,i4,a3,i4,1x,a14,3x,a10)') ',', &
-             &"Calculating k-point ", ik, " of", num_kpoints_on_node(my_node_id), 'on this node.', "<-- JDOS |"
-      end if
-      do is = 1, nspins
-        occ_states: do ib = 1, nbands
-          if (num_exclude_bands > 0) then
-            if (any(exclude_bands == ib)) cycle
-          end if
-          if (band_energy(ib, is, ik) .ge. efermi) cycle occ_states
-          unocc_states: do jb = 1, nbands
-            if (band_energy(jb, is, ik) .lt. efermi) cycle unocc_states
-            if (linear .or. adaptive) grad(:) = band_gradient(jb, :, ik, is) - band_gradient(ib, :, ik, is)
-
-            ! If the band is very flat linear broadening can have problems describing it. In this case, fall back to
-            ! adaptive smearing (and take advantage of FBCS if required).
-            force_adaptive = .false.
-            if (hybrid_linear .and. (hybrid_linear_grad_tol > sqrt(dot_product(grad, grad)))) force_adaptive = .true.
-            if (linear .and. .not. force_adaptive) call doslin_sub_cell_corners(grad, step, band_energy(jb, is, ik) -&
-                                                    &band_energy(ib, is, ik) + scissor_op, EV)
-            if (adaptive .or. force_adaptive) width = sqrt(dot_product(grad, grad))*adaptive_smearing_temp
-
-            ! Hybrid Adaptive -- This way we don't lose weight at very flat parts of the
-            ! band. It's a kind of fudge that we wouldn't need if we had infinitely small bins.
-            if (finite_bin_correction .and. (width < delta_bins)) width = delta_bins
-
-            idos = photo_photon_energy/jdos_spacing
-            ! The linear method has a special way to calculate the integrated dos
-            ! we have to take account for this here.
-            if (linear .and. .not. force_adaptive) then
-              delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), E(idos), cuml)
-            else
-              delta_temp(ib, jb, ik, is) = gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,E(idos))!&
-            end if
-
-          end do unocc_states
-        end do occ_states
-      end do
+    num_occ = 0.0_dp
+    do N_spin = 1, nspins
+      num_occ(N_spin) = num_electrons(N_spin)
     end do
 
-    if (iprint > 1 .and. on_root) then
-      write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
+    if (electrons_per_state == 2) then
+      num_occ(1) = num_occ(1)/2.0_dp
     end if
 
-  end subroutine calculate_delta
+    allocate (foptical_matrix_weights(nbands + 1, nbands + 1, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
+    if (ierr /= 0) call io_error('Error: make_optical_weights - allocation of foptical_matrix_weights failed')
+    foptical_matrix_weights = 0.0_dp
+
+    if (index(optics_geom, 'polar') > 0) then
+      qdir = optics_qdir
+      q_weight = ((qdir(1)**2) + (qdir(2)**2) + (qdir(3)**2))**0.5_dp
+      if (q_weight < 0.001_dp) &
+        call io_error("Error:  please check optics_qdir, norm close to zero")
+    end if
+
+    if (index(optics_geom, 'unpolar') > 0) then
+      !TO CHANGE WHEN THE light_direction IS CORRECTED
+      !optics_qdir(:)=t_cart(:)
+      if (optics_qdir(3) .lt. 1E-06) then
+        qdir1(1) = 0.0_dp
+        qdir1(2) = 0.0_dp
+        qdir1(3) = 1.0_dp
+      else
+        qdir1(1) = 1.0_dp
+        qdir1(2) = 1.0_dp
+        qdir1(3) = -(optics_qdir(1) + optics_qdir(2))/optics_qdir(3)
+      end if
+      qdir2(1) = (optics_qdir(2)*qdir1(3)) - (optics_qdir(3)*qdir1(2))
+      qdir2(2) = (optics_qdir(3)*qdir1(1)) - (optics_qdir(1)*qdir1(3))
+      qdir2(3) = (optics_qdir(1)*qdir1(2)) - (optics_qdir(2)*qdir1(1))
+      q_weight1 = ((qdir1(1)**2) + (qdir1(2)**2) + (qdir1(3)**2))**0.5_dp
+      q_weight2 = ((qdir2(1)**2) + (qdir2(2)**2) + (qdir2(3)**2))**0.5_dp
+    end if
+
+    N_in = 1  ! 0 = no inversion, 1 = inversion
+    g = 0.0_dp
+
+    do N = 1, num_kpoints_on_node(my_node_id)                   ! Loop over kpoints
+      do N_spin = 1, nspins                                    ! Loop over spins
+        do n_eigen = 1, nbands                                ! Loop over state 1
+          factor = 1.0_dp/(photo_photon_energy**2)
+          if (index(optics_geom, 'unpolar') > 0) then
+            if (num_symm == 0) then
+              g(1) = (((qdir1(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
+                       (qdir1(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
+                       (qdir1(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight1)
+              g(2) = (((qdir2(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
+                       (qdir2(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
+                       (qdir2(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight2)
+              foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
+                0.5_dp*factor*(real(g(1)*conjg(g(1)), dp) + real(g(2)*conjg(g(2)), dp))
+            else ! begin unpolar symmetric
+              do N2 = 1, num_symm
+                do N3 = 1, 1 + N_in
+                  do i = 1, 3
+                    qdir(i) = 0.0_dp
+                    do j = 1, 3
+                      qdir(i) = qdir(i) + ((-1.0_dp)**(N3 + 1))* &
+                                (crystal_symmetry_operations(j, i, N2)*qdir1(j))
+                    end do
+                  end do
+                  g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
+                           (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
+                           (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight1)
+                  foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
+                    foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) + &
+                    (0.5_dp/Real((num_symm*(N_in + 1)), dp))*real(g(1)*conjg(g(1)), dp)*factor
+                  g(1) = 0.0_dp
+                  do i = 1, 3 ! if I include an extra variable I can merge this and the last do loops
+                    qdir(i) = 0.0_dp
+                    do j = 1, 3
+                      qdir(i) = qdir(i) + ((-1.0_dp)**(N3 + 1))* &
+                                (crystal_symmetry_operations(j, i, N2)*qdir2(j))
+                    end do
+                  end do
+                  g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
+                           (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
+                           (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight2)
+                  foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
+                    foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) + &
+                    (0.5_dp/Real((num_symm*(N_in + 1)), dp))*real(g(1)*conjg(g(1)), dp)*factor
+                end do
+              end do
+            end if !end unpolar symmetric
+          elseif (index(optics_geom, 'polar') > 0) then
+            if (num_symm == 0) then
+              g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
+                       (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
+                       (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight)
+              foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = factor*real(g(1)*conjg(g(1)), dp)
+            else !begin polar symmetric
+              do N2 = 1, num_symm
+                do N3 = 1, 1 + N_in
+                  do i = 1, 3
+                    qdir(i) = 0.0_dp
+                    do j = 1, 3
+                      qdir(i) = qdir(i) + ((-1.0_dp)**(N3 + 1))* &
+                                (crystal_symmetry_operations(j, i, N2)*optics_qdir(j))
+                    end do
+                  end do
+                  g(1) = 0.0_dp
+                  g(1) = (((qdir(1)*foptical_mat(n_eigen, nbands + 1, 1, N, N_spin)) + &
+                           (qdir(2)*foptical_mat(n_eigen, nbands + 1, 2, N, N_spin)) + &
+                           (qdir(3)*foptical_mat(n_eigen, nbands + 1, 3, N, N_spin)))/q_weight)
+                  foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) = &
+                    foptical_matrix_weights(n_eigen, nbands + 1, N, N_spin, N_geom) + &
+                    (1.0_dp/Real((num_symm*(N_in + 1)), dp))*factor*real(g(1)*conjg(g(1)), dp)
+                end do
+              end do
+            end if !end polar symmetric
+          end if ! end photo_geom
+        end do       ! Loop over state 1
+      end do           ! Loop over spins
+    end do               ! Loop over kpoints
+    
+    if (iprint .eq. 4 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------------------- Printing Free OM Weights -------------------------+'
+      write (stdout, 126) shape(foptical_matrix_weights)
+      write (stdout, 126) nbands+1, nbands+1, num_kpoints_on_node(my_node_id), nspins, N_geom
+      126 format(5(1x,I4))
+      do N2=1,N_geom
+        do N_spin=1, nspins
+          do N=1, num_kpoints_on_node(my_node_id)
+            write(stdout,'(99999(es15.8))') ((foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),n_eigen2=1,nbands+1),&
+            n_eigen=1,nbands+1)
+          end do
+        end do
+      end do
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+    end if
+  end subroutine make_foptical_weights
 
   !===============================================================================
   subroutine weighted_mean_te
@@ -1723,7 +1547,7 @@ contains
     use od_jdos_utils, only: jdos_nbins, E
 
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, N_energy, transitions_den, transitions_num
+    integer :: angle, transitions_den, transitions_num
     real(kind=dp) :: mean_te
     real(kind=dp), allocatable, dimension(:, :, :, :, :) :: te_tsm_temp
     real(kind=dp), allocatable, dimension(:, :, :, :) :: te_osm_temp
@@ -2062,29 +1886,6 @@ contains
   end subroutine write_qe_output_files
 
   !***************************************************************
-  subroutine effect_wf
-    !***************************************************************
-    !photo_elec_field given in eV/A
-
-    use od_parameters, only: photo_work_function, photo_elec_field
-    use od_electronic, only: efermi
-    use od_constants, only: pi, epsilon_zero
-
-    !  real(kind=dp) :: z
-
-    !  z=sqrt((1/(16*pi*epsilon_zero*1E-4))/photo_elec_field)
-
-    !  work_function_eff = photo_work_function - photo_elec_field*z -(1/(16*pi*epsilon_zero*1E-4))/z
-
-    !  evacuum_eff = work_function_eff + efermi
-
-    work_function_eff = photo_work_function - sqrt(photo_elec_field/(4*pi*epsilon_zero*1E-4))
-
-    evacuum_eff = work_function_eff + efermi
-
-  end subroutine effect_wf
-
-  !***************************************************************
   subroutine calc_field_emission
     !***************************************************************
     ! This subroutine calculates the Schottky effect
@@ -2179,6 +1980,200 @@ contains
 
     !ADD COMMENT
   end subroutine calc_field_emission
+
+  !===============================================================================
+  subroutine jdos_utils_calculate_delta(delta_temp)
+    !===============================================================================
+    ! It is required to evaluate the delta funcion.
+    ! Victor Chang, 7th February 2020
+    !===============================================================================
+    use od_parameters, only: linear, fixed, adaptive, quad, iprint, dos_per_volume
+    use od_electronic, only: elec_read_band_gradient, band_gradient, nspins, electrons_per_state, &
+                             num_electrons, efermi_set
+    use od_comms, only: on_root
+    use od_io, only: stdout, io_error, io_time
+    use od_cell, only: cell_volume
+    use od_dos_utils, only: dos_utils_set_efermi
+    use od_jdos_utils, only: setup_energy_scale
+
+    implicit none
+    integer :: ierr
+    real(kind=dp) :: time0, time1
+
+    real(kind=dp), intent(out), allocatable, optional    :: delta_temp(:, :, :, :)  !I've added this
+    real(kind=dp), allocatable :: jdos_adaptive(:, :)
+    real(kind=dp), allocatable :: jdos_fixed(:, :)
+    real(kind=dp), allocatable :: jdos_linear(:, :)
+
+    !-------------------------------------------------------------------------------
+    ! R E A D   B A N D   G R A D I E N T S
+    ! If we're using one of the more accurate roadening schemes we also need to read in the
+    ! band gradients too
+    if (quad .or. linear .or. adaptive) then
+      if (.not. allocated(band_gradient)) call elec_read_band_gradient
+    end if
+    !-------------------------------------------------------------------------------
+
+    if (.not. efermi_set) call dos_utils_set_efermi
+
+    time0 = io_time()
+
+    call setup_energy_scale(E)
+
+    if (fixed) then
+      call calculate_delta('f', delta_temp)
+    end if
+    if (adaptive) then
+      call calculate_delta('a', delta_temp)
+
+    end if
+    if (linear) then
+      call calculate_delta('l', delta_temp)
+    end if
+
+    if (quad) then
+      call io_error("quadratic broadening not implemented")
+    end if
+
+    time1 = io_time()
+    if (on_root .and. iprint > 1) then
+      write (stdout, '(1x,a59,f11.3,a8)') &
+           '+ Time to calculate Joint Density of States              &
+           &      ', time1 - time0, ' (sec) +'
+    end if
+    !-------------------------------------------------------------------------------
+
+    if (dos_per_volume) then
+    if (fixed) then
+      jdos_fixed = jdos_fixed/cell_volume
+    end if
+    if (adaptive) then
+      jdos_adaptive = jdos_adaptive/cell_volume
+    end if
+    if (linear) then
+      jdos_linear = jdos_linear/cell_volume
+    end if
+
+    ! if(quad) then
+    !    dos_quad=dos_quad/cell_volume
+    !    intdos_quad=intdos_quad/cell_volume
+    ! endif
+    end if
+
+  end subroutine jdos_utils_calculate_delta
+
+   !===============================================================================
+  subroutine calculate_delta(delta_type, delta_temp)
+    !===============================================================================
+    ! This subroutine evaluates the delta function between the valence band
+    ! and the conduction band using the method specified in the input.
+    ! Victor Chang, 7 February 2020
+    !===============================================================================
+    use od_comms, only: my_node_id, on_root
+    use od_cell, only: num_kpoints_on_node, kpoint_grid_dim, kpoint_weight,&
+         &recip_lattice, num_atoms
+    use od_parameters, only: adaptive_smearing, fixed_smearing, iprint, &
+         &finite_bin_correction, scissor_op, hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
+         photo, photo_photon_energy, jdos_spacing
+    use od_io, only: io_error, stdout
+    use od_electronic, only: band_gradient, nbands, band_energy, nspins, electrons_per_state, &
+         & efermi
+    use od_dos_utils, only: doslin, doslin_sub_cell_corners
+    use od_algorithms, only: gaussian
+    implicit none
+
+    integer :: ik, is, ib, idos, jb, i
+    integer :: N, N_spin, n_eigen, n_eigen2, atom
+    integer :: N2, ierr
+    real(kind=dp) :: cuml, width, adaptive_smearing_temp, dos_test
+    real(kind=dp) :: grad(1:3), step(1:3), EV(0:4), sub_cell_length(1:3)
+
+    character(len=1), intent(in)                      :: delta_type
+    real(kind=dp), intent(inout), allocatable, optional :: delta_temp(:, :, :, :)
+    logical :: linear, fixed, adaptive, force_adaptive
+
+    linear = .false.
+    fixed = .false.
+    adaptive = .false.
+
+    select case (delta_type)
+    case ("l")
+      linear = .true.
+    case ("a")
+      adaptive = .true.
+    case ("f")
+      fixed = .true.
+    case default
+      call io_error(" ERROR : unknown jdos_type in jcalculate_dos ")
+    end select
+
+    width = 0.0_dp
+
+    if (linear .or. adaptive) step(:) = 1.0_dp/real(kpoint_grid_dim(:), dp)/2.0_dp
+    if (adaptive .or. hybrid_linear) then
+      do i = 1, 3
+        sub_cell_length(i) = sqrt(recip_lattice(i, 1)**2 + recip_lattice(i, 2)**2 + recip_lattice(i, 3)**2)*step(i)
+      end do
+      adaptive_smearing_temp = adaptive_smearing*sum(sub_cell_length)/3.0_dp
+    end if
+
+    if (fixed) width = fixed_smearing
+
+    allocate (delta_temp(nbands, nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
+    if (ierr /= 0) call io_error('Error: calculate_jdos - failed to allocate weighted_jdos')
+    delta_temp = 0.0_dp
+    if (iprint > 1 .and. on_root) then
+      write (stdout, '(1x,a78)') '+------------------------------ Calculate JDOS ------------------------------+'
+    end if
+
+    do ik = 1, num_kpoints_on_node(my_node_id)
+      if (iprint > 1 .and. on_root) then
+        if (mod(real(ik, dp), 10.0_dp) == 0.0_dp) write (stdout, '(1x,a1,a38,i4,a3,i4,1x,a14,3x,a10)') ',', &
+             &"Calculating k-point ", ik, " of", num_kpoints_on_node(my_node_id), 'on this node.', "<-- JDOS |"
+      end if
+      do is = 1, nspins
+        occ_states: do ib = 1, nbands
+          if (num_exclude_bands > 0) then
+            if (any(exclude_bands == ib)) cycle
+          end if
+          if (band_energy(ib, is, ik) .ge. efermi) cycle occ_states
+          unocc_states: do jb = 1, nbands
+            if (band_energy(jb, is, ik) .lt. efermi) cycle unocc_states
+            if (linear .or. adaptive) grad(:) = band_gradient(jb, :, ik, is) - band_gradient(ib, :, ik, is)
+
+            ! If the band is very flat linear broadening can have problems describing it. In this case, fall back to
+            ! adaptive smearing (and take advantage of FBCS if required).
+            force_adaptive = .false.
+            if (hybrid_linear .and. (hybrid_linear_grad_tol > sqrt(dot_product(grad, grad)))) force_adaptive = .true.
+            if (linear .and. .not. force_adaptive) call doslin_sub_cell_corners(grad, step, band_energy(jb, is, ik) -&
+                                                    &band_energy(ib, is, ik) + scissor_op, EV)
+            if (adaptive .or. force_adaptive) width = sqrt(dot_product(grad, grad))*adaptive_smearing_temp
+
+            ! Hybrid Adaptive -- This way we don't lose weight at very flat parts of the
+            ! band. It's a kind of fudge that we wouldn't need if we had infinitely small bins.
+            if (finite_bin_correction .and. (width < delta_bins)) width = delta_bins
+
+            idos = photo_photon_energy/jdos_spacing
+            ! The linear method has a special way to calculate the integrated dos
+            ! we have to take account for this here.
+            if (linear .and. .not. force_adaptive) then
+              delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), E(idos), cuml)
+            else
+              delta_temp(ib, jb, ik, is) = gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,E(idos))!&
+            end if
+
+          end do unocc_states
+        end do occ_states
+      end do
+    end do
+
+    if (iprint > 1 .and. on_root) then
+      write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
+    end if
+
+  end subroutine calculate_delta
+
+  
 
   !***************************************************************
   subroutine photo_deallocate
