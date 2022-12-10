@@ -1370,7 +1370,7 @@ contains
     real(kind=dp)                        :: dummyr1, dummyr2, dummyr3
     integer                              :: dummyi, ib, ik, is
     integer                              :: pdos_in_unit, ierr, inodes
-    logical                              :: full_debug_pdos_weights = .true.
+    logical                              :: full_debug_pdos_weights = .false.
     character(filename_len) :: pdos_filename
     real(kind=dp) :: time0, time1, file_version
     real(kind=dp), parameter :: file_ver = 1.0_dp

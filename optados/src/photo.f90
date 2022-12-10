@@ -343,7 +343,7 @@ contains
 
     use od_optics, only: make_weights, calc_epsilon_2, calc_epsilon_1, &
                          calc_refract, calc_absorp, calc_reflect, epsilon, refract, absorp, reflect, &
-                         intra
+                         intra, N_geom
     use od_io, only: stdout, io_error
     use od_electronic, only: optical_mat, elec_read_optical_mat, nbands, nspins, &
                              efermi, efermi_set, elec_dealloc_optical, &
@@ -373,12 +373,12 @@ contains
 
     call make_weights(matrix_weights)
     
-    !! Taken from optics.f90 because N_geom is redefined here and has to be re-initialised !!
-    if (.not. index(optics_geom, 'tensor') > 0) then ! I can rewrite this in a simplier way??
-      N_geom = 1
-    elseif (index(optics_geom, 'tensor') > 0) then
-      N_geom = 6
-    end if
+    ! !! Taken from optics.f90 because N_geom is redefined here and has to be re-initialised !!
+    ! if (.not. index(optics_geom, 'tensor') > 0) then ! I can rewrite this in a simplier way??
+    !   N_geom = 1
+    ! elseif (index(optics_geom, 'tensor') > 0) then
+    !   N_geom = 6
+    ! end if
 
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
@@ -390,9 +390,6 @@ contains
     end if
     
     do atom = 1, max_atoms                           ! Loop over atoms
-      
-      
-        
       allocate (projected_matrix_weights(nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
       if (ierr /= 0) call io_error('Error: make_photo_weights - allocation of projected matrix_weights failed')
 
