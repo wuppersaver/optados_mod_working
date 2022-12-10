@@ -81,7 +81,7 @@ module od_photo
   real(kind=dp) :: total_field_emission
   real(kind=dp), allocatable, dimension(:, :, :) :: field_emission
   integer, allocatable, dimension(:) :: layer
-  integer :: N_geom
+  !integer :: N_geom
   integer :: max_atoms
   integer :: max_doubling_atom
   integer :: max_layer
@@ -365,7 +365,7 @@ contains
 
     real(kind=dp), allocatable, dimension(:, :, :, :) :: dos_matrix_weights
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e
-    real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
+    !real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
 
     integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr
@@ -973,6 +973,7 @@ contains
     use od_jdos_utils, only: jdos_utils_calculate
     use od_jdos_utils, only: jdos_nbins, E
     use od_constants, only: pi, kB
+    use od_optics, only: N_geom
 
     integer :: N,N2 , N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
     integer :: angle
@@ -1353,6 +1354,7 @@ contains
     !===============================================================================
 
     use od_constants, only: dp
+    use od_optics, only: N_geom
     use od_electronic, only: nbands, nspins, optical_mat, num_electrons, &
                              electrons_per_state, band_energy, efermi, foptical_mat
     use od_cell, only: nkpoints, cell_volume, num_kpoints_on_node, cell_get_symmetry, &
@@ -1393,8 +1395,6 @@ contains
     if (electrons_per_state == 2) then
       num_occ(1) = num_occ(1)/2.0_dp
     end if
-
-    N_geom = 1
 
     allocate (foptical_matrix_weights(nbands + 1, nbands + 1, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
     if (ierr /= 0) call io_error('Error: make_optical_weights - allocation of foptical_matrix_weights failed')
@@ -2084,7 +2084,7 @@ contains
 
     integer :: ik, is, ib, idos, jb, i
     integer :: N, N_spin, n_eigen, n_eigen2, atom
-    integer :: N2, N_geom, ierr
+    integer :: N2, ierr
     real(kind=dp) :: cuml, width, adaptive_smearing_temp, dos_test
     real(kind=dp) :: grad(1:3), step(1:3), EV(0:4), sub_cell_length(1:3)
 
