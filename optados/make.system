@@ -2,14 +2,14 @@
 SYSTEM := gfortran
 
 # fast / debug
-BUILD := fast
+BUILD := debug
 
 # serial / mpi
 COMMS_ARCH :=  serial
 
 # Where would you like the executables?
-#PREFIX:=../debug/init_non_zero/
-PREFIX:=../fast/
+PREFIX:=../debug/init_non_zero/
+#PREFIX:=../fast_jdos2/
 
 
 

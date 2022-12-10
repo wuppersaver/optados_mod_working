@@ -4,3 +4,4 @@ optados/*.o*
 optados/*.e*
 debug
 fast
+fast_jdos2

@@ -799,20 +799,20 @@ contains
     refract = 0.0_dp
 
     if (.not. optics_intraband) then
-      do N_energy = 1, jdos_nbins
+      do N_energy = 2, jdos_nbins
         refract(N_energy, 1) = (0.5_dp*((((epsilon(N_energy, 1, 1, 1)**2) +&
              &(epsilon(N_energy, 2, 1, 1)**2))**0.5_dp) + epsilon(N_energy, 1, 1, 1)))**(0.5_dp)
       end do
-      do N_energy = 1, jdos_nbins
+      do N_energy = 2, jdos_nbins
         refract(N_energy, 2) = (0.5_dp*((((epsilon(N_energy, 1, 1, 1)**2) +&
              &(epsilon(N_energy, 2, 1, 1)**2))**0.5_dp) - epsilon(N_energy, 1, 1, 1)))**(0.5_dp)
       end do
     else
-      do N_energy = 1, jdos_nbins
+      do N_energy = 2, jdos_nbins
         refract(N_energy, 1) = (0.5_dp*((((epsilon(N_energy, 1, 1, 3)**2) +&
              &((epsilon(N_energy, 2, 1, 3)/(E(N_energy)*e_charge))**2))**0.5_dp) + epsilon(N_energy, 1, 1, 1)))**(0.5_dp)
       end do
-      do N_energy = 1, jdos_nbins
+      do N_energy = 2, jdos_nbins
         refract(N_energy, 2) = (0.5_dp*((((epsilon(N_energy, 1, 1, 1)**2) +&
              &((epsilon(N_energy, 2, 1, 3)/(E(N_energy)*e_charge))**2))**0.5_dp) - epsilon(N_energy, 1, 1, 1)))**(0.5_dp)
       end do
