@@ -686,6 +686,7 @@ contains
 
     integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
     integer :: angle, transitions_den, transitions_num
+    real(kind=dp) :: angle_argument
 
     real(kind=dp), allocatable, dimension(:, :, :):: E_x
     real(kind=dp), allocatable, dimension(:, :, :):: E_y
@@ -764,12 +765,19 @@ contains
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
+
           E_kinetic(n_eigen, N, N_spin) = (band_energy(n_eigen, N_spin, N) + photo_photon_energy - evacuum_eff)
 
-          !Calculat angle
-          theta_arpes(n_eigen, N, N_spin) = &
-            (acos((E_kinetic(n_eigen, N, N_spin) - E_transverse(n_eigen, N, N_spin))/ &
-                  E_kinetic(n_eigen, N, N_spin)))*rad_to_deg
+          !! The total kinetic enery E_kinetic_total is composed of E|| and E_transvers, therefore the angle argument always has to
+          !! be < 1, because theta = acos(E||/E_kinetic_total). The previous formula was: (E_kinetic(n_eigen, N, N_spin) - 
+          !! E_transverse(n_eigen, N, N_spin))/E_kinetic(n_eigen, N, N_spin) If the total kinetic energy is negative and 
+          !! E_transverse is positive, this causes the acos to be undefined, as the previous formula did not include the abs 
+          !!statements.
+          angle_argument = (abs(E_kinetic(n_eigen, N, N_spin)) - E_transverse(n_eigen, N, N_spin))/&
+          &abs(E_kinetic(n_eigen, N, N_spin))
+          
+          theta_arpes(n_eigen, N, N_spin) = (acos(angle_argument))*rad_to_deg
+
         end do
       end do
     end do
