@@ -137,14 +137,6 @@ contains
 
     call calc_absorp_layer
 
-    !Calculate the photoemission angles theta/phi and transverse energy
-    call calc_angle
-
-    !Calculate the electron escape length
-    call calc_electron_esc
-
-    call bulk_emission
-
     !Electric field and field emission
     if (photo_elec_field .gt. 0.0_dp) then
       call effect_wf
@@ -152,6 +144,14 @@ contains
       evacuum_eff = efermi + photo_work_function
       work_function_eff = photo_work_function
     end if
+
+    !Calculate the photoemission angles theta/phi and transverse energy
+    call calc_angle
+
+    !Calculate the electron escape length
+    call calc_electron_esc
+
+    call bulk_emission
 
     !Calculate the QE
     if (index(photo_model, '3step') > 0) then !Three-step-model
@@ -635,6 +635,29 @@ contains
 
   end subroutine calc_absorp_layer
 
+  !***************************************************************
+  subroutine effect_wf
+    !***************************************************************
+    !photo_elec_field given in eV/A
+
+    use od_parameters, only: photo_work_function, photo_elec_field
+    use od_electronic, only: efermi
+    use od_constants, only: pi, epsilon_zero
+
+    !  real(kind=dp) :: z
+
+    !  z=sqrt((1/(16*pi*epsilon_zero*1E-4))/photo_elec_field)
+
+    !  work_function_eff = photo_work_function - photo_elec_field*z -(1/(16*pi*epsilon_zero*1E-4))/z
+
+    !  evacuum_eff = work_function_eff + efermi
+
+    work_function_eff = photo_work_function - sqrt(photo_elec_field/(4*pi*epsilon_zero*1E-4))
+
+    evacuum_eff = work_function_eff + efermi
+
+  end subroutine effect_wf
+
   !===============================================================================
   subroutine calc_angle
     !===============================================================================
@@ -741,8 +764,7 @@ contains
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
-          E_kinetic(n_eigen, N, N_spin) = &
-            (band_energy(n_eigen, N_spin, N) + photo_photon_energy - evacuum_eff)
+          E_kinetic(n_eigen, N, N_spin) = (band_energy(n_eigen, N_spin, N) + photo_photon_energy - evacuum_eff)
 
           !Calculat angle
           theta_arpes(n_eigen, N, N_spin) = &
@@ -926,28 +948,6 @@ contains
 
   end subroutine bulk_emission
 
-  !***************************************************************
-  subroutine effect_wf
-    !***************************************************************
-    !photo_elec_field given in eV/A
-
-    use od_parameters, only: photo_work_function, photo_elec_field
-    use od_electronic, only: efermi
-    use od_constants, only: pi, epsilon_zero
-
-    !  real(kind=dp) :: z
-
-    !  z=sqrt((1/(16*pi*epsilon_zero*1E-4))/photo_elec_field)
-
-    !  work_function_eff = photo_work_function - photo_elec_field*z -(1/(16*pi*epsilon_zero*1E-4))/z
-
-    !  evacuum_eff = work_function_eff + efermi
-
-    work_function_eff = photo_work_function - sqrt(photo_elec_field/(4*pi*epsilon_zero*1E-4))
-
-    evacuum_eff = work_function_eff + efermi
-
-  end subroutine effect_wf
 
   !===============================================================================
   subroutine calc_three_step_model
