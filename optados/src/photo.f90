@@ -173,7 +173,7 @@ contains
     !Deallocate everything
     call photo_deallocate
 
-    write (stdout, *) 'End of execution'
+    write (stdout, '(1x,a78)') '| End of Photoemission Calculation                                           |'
 
   end subroutine photo_calculate
 
@@ -1616,10 +1616,10 @@ contains
     if (index(photo_model, '3step') > 0) then
       write (stdout, '(1x,a78)') '+------------------------------ Photoemission -------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
-      write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a6)') '| Work Function', photo_work_function, &
-        'eV          Photon Energy', photo_photon_energy, 'eV   |'
-      write (stdout, '(a26,f10.4,1x,a26,f10.4,a6)') '| Effective Work Function', work_function_eff, &
-        ' eV        Electric field', photo_elec_field, 'V/A  |'
+      write (stdout, '(1x,a20,f15.4,1x,a24,f11.4,1x,a6)') '| Work Function     ', photo_work_function, &
+        'eV         Photon Energy', photo_photon_energy, 'eV   |'
+      write (stdout, '(1x,a25,f10.4,1x,a25,f10.4,1x,a6)') '| Effective Work Function', work_function_eff, &
+        'eV         Electric Field', photo_elec_field, 'V/A  |'
       write (stdout, '(1x,a78)') '| Final state : Bloch state                                                  |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
@@ -1639,10 +1639,10 @@ contains
     if (index(photo_model, '1step') > 0) then
       write (stdout, '(1x,a78)') '+------------------------------ Photoemission -------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
-      write (stdout, '(1x,a15,f15.4,1x,a25,f15.4,1x,a5)') '| Work Function', photo_work_function, &
-        'eV          Photon Energy', photo_photon_energy, 'eV  |'
-      write (stdout, '(a26,f10.4,1x,a26,f10.4,a6)') '| Effective Work Function', work_function_eff, &
-        ' eV        Electric field', photo_elec_field, 'V/A  |'
+      write (stdout, '(1x,a20,f15.4,1x,a24,f11.4,1x,a6)') '| Work Function     ', photo_work_function, &
+        'eV         Photon Energy', photo_photon_energy, 'eV   |'
+      write (stdout, '(1x,a25,f10.4,1x,a25,f10.4,1x,a6)') '| Effective Work Function', work_function_eff, &
+        'eV         Electric Field', photo_elec_field, 'V/A  |'
       write (stdout, '(1x,a78)') '| Final state : Free electron state                                          |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
