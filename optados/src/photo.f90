@@ -1651,12 +1651,11 @@ contains
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
 
       do atom = 1, max_atoms
-        write (stdout, 225) "|  ", trim(atoms_label_tmp(atom_order(atom))), atom_order(atom), &
-          layer(atom), '              ', &
-          sum(qe_tsm(1:nbands, 1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, atom)), "      |"
+        write (stdout, 225) "|", trim(atoms_label_tmp(atom_order(atom))), atom_order(atom), &
+          layer(atom), sum(qe_tsm(1:nbands, 1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, atom)), "      |"
       end do
-      write (stdout, 226) "| Bulk                                     ", &
-        sum(qe_tsm(1:nbands, 1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, max_atoms + 1)), "      |"
+      write (stdout, 226) "| Bulk", sum(qe_tsm(1:nbands, 1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, max_atoms + 1)), &
+      &"      |"
 
       write (stdout, 227) '| Total Quantum Efficiency (electrons/photon):', &
         sum(qe_tsm(1:nbands, 1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, 1:max_atoms + 1)), '   |'
@@ -1666,37 +1665,36 @@ contains
       write (stdout, '(1x,a78)') '+------------------------------ Photoemission -------------------------------+'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, 223) '| Work Function     ', photo_work_function, &
-        'eV         Photon Energy', photo_photon_energy, 'eV   |'
+        'eV         Photon Energy', photo_photon_energy, ' eV   |'
       write (stdout, 224) '| Effective Work Function', work_function_eff, &
-        'eV         Electric Field', photo_elec_field, 'V/A  |'
+        'eV         Electric Field', photo_elec_field, ' V/A  |'
       write (stdout, '(1x,a78)') '| Final state : Free electron state                                          |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
 
       do atom = 1, max_atoms
-        write (stdout, 225) "|  ", trim(atoms_label_tmp(atom_order(atom))), atom_order(atom), &
-          layer(atom), '              ', &
-          sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, atom)), "      |"
-        
+        write (stdout, 225) "|", trim(atoms_label_tmp(atom_order(atom))), atom_order(atom), &
+          layer(atom), sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, atom)), "      |"
       end do
-      write (stdout, 226) "| Bulk                                     ", &
-        sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, max_atoms + 1)), "      |"
+      write (stdout, 226) "| Bulk", sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, max_atoms + 1)), "      |"
 
       write (stdout, 227) '| Total Quantum Efficiency (electrons/photon):', &
-        sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, 1:max_atoms + 1)), '   |'
+        sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, 1:max_atoms + 1)), '      |'
 
     end if
-    write (stdout, '(1x,a39,1x,f26.16,a11)') '| Weighted mean transverse energy (eV):', mean_te, '          |'
+    write (stdout, 228) '| Weighted mean transverse energy (eV):', mean_te, '      |'
     if (photo_elec_field .gt. 0.0_dp) then
-      write (stdout, '(1x,a39,1x,f26.16,a11)') '| Total field emission (electrons/A^2):', total_field_emission, '          |'
+      write (stdout, 229) '| Total field emission (electrons/A^2):', total_field_emission, '      |'
     end if
     write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
 
-    223 format(1x,a20,f15.4,1x,a24,f11.4,1x,a6)
-    224 format(1x,a25,f10.4,1x,a25,f10.4,1x,a6)
-    225 format(1x,a3,a4,1x,I3,1x,I3,a14,1x,E24.16E3,a7)
-    226 format(1x,a43,1x,E24.16E3,a7)
-    227 format(1x,a46,1x,E24.16E3,a4)
+    223 format(1x,a20,f15.4,1x,a24,f11.4,a7)
+    224 format(1x,a25,f10.4,1x,a25,f10.4,a7)
+    225 format(1x,a1,a4,8x,I3,10x,I3,16x,E24.16E3,2x,a7)
+    226 format(1x,a6,38x,E25.16E3,2x,a7)
+    227 format(1x,a46,E25.16E3,a7)
+    228 format(1x,a39,7x,E25.16E3,a7)
+    229 format(1x,a39,7x,E25.16E3,a7)
   end subroutine weighted_mean_te
 
   subroutine binding_energy_spread
