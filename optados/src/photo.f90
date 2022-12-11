@@ -904,7 +904,6 @@ contains
         do n_eigen = 1, nbands
           if (cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad) .gt. 0.0_dp) then
             do i = 1, num_layers
-              
               exponent = (new_atoms_coordinates(3, atom_order(max_atoms)) - i*thickness_atom(max_atoms)/ &
               cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad))/photo_imfp_const
               ! This makes sure, that exp(exponent) does not underflow the dp fp value.
@@ -912,11 +911,6 @@ contains
               if (exponent .gt. -575.0_dp) then
                 bulk_esc_tmp(n_eigen, N, N_spin, i) = exp(exponent)
               end if
-              
-              write(stdout,225) n, n_eigen, i, new_atoms_coordinates(3, atom_order(max_atoms)), thickness_atom(max_atoms), &
-              & theta_arpes(n_eigen, N, N_spin), photo_imfp_const
-              225 format(1x,I3,1x,I3,1x,I3,1x,ES17.8,1x,ES17.8,1x,ES17.8,ES17.8)
-              write(stdout,'(1x,ES17.8E3,1x,E17.8E3)') exponent,bulk_esc_tmp(n_eigen, N, N_spin, i)
             end do
           end if
         end do
