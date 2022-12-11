@@ -2,14 +2,13 @@
 SYSTEM := gfortran
 
 # fast / debug
-BUILD := debug
+BUILD := fast
 
 # serial / mpi
 COMMS_ARCH :=  serial
 
 # Where would you like the executables?
-PREFIX:=../debug/init_non_zero/
-#PREFIX:=../fast_jdos2/
+PREFIX:=../fast/
 
 
 
@@ -35,7 +34,7 @@ endif
 ifeq ($(SYSTEM), gfortran)
    F90_SERIAL= gfortran
    F90_PARALLEL= mpif90 
-   FFLAGS= -fconvert=big-endian -fPIC 
+   FFLAGS= -fconvert=big-endian -fPIC
    FFLAGS_PARALLEL=  -DMPI
    FFLAGS_FAST= -O3
    FFLAGS_DEBUG= -O0 -pg -g -finit-real=snan -ffpe-trap=zero,overflow,underflow,invalid
