@@ -1069,12 +1069,15 @@ contains
         do n_eigen = 1, nbands
 
           argument = (band_energy(n_eigen, N_spin, N) - efermi)/(kB*photo_temperature)
+
           ! This is a bit of an arbitrary condition, but it turns out
-          ! that this corresponds to a fermi_dirac value of ~1E-250
+          ! that this corresponds to a an exponent value of ~1E+/-250
           ! and this cutoff condition saves us from running into arithmetic
           ! issues when computing fermi_dirac due to possible underflow.
           if (argument .gt. 555.0_dp) then
             fermi_dirac = 0.0_dp
+          elseif (argument .lt. -575.0_dp) then
+            fermi_dirac = 1.0_dp
           else
             fermi_dirac = 1.0_dp/(exp(argument) + 1.0_dp)
           end if
@@ -1260,11 +1263,13 @@ contains
           
           argument = (band_energy(n_eigen, N_spin, N) - efermi)/(kB*photo_temperature)
           ! This is a bit of an arbitrary condition, but it turns out
-          ! that this corresponds to a fermi_dirac value of ~1E-250
+          ! that this corresponds to a exponential value of ~1E+/-250
           ! and this cutoff condition saves us from running into arithmetic
           ! issues when computing fermi_dirac due to possible underflow.
           if (argument .gt. 555.0_dp) then
             fermi_dirac = 0.0_dp
+          elseif (argument .lt. -575.0_dp) then
+            fermi_dirac = 1.0_dp
           else
             fermi_dirac = 1.0_dp/(exp(argument) + 1.0_dp)
           end if
