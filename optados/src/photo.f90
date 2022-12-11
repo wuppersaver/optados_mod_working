@@ -248,8 +248,8 @@ contains
       end if
     end do
 
-    write (stdout, *) '|  Max number of atoms:', max_atoms, '   Max  number of layers:', max_layer, '   |'
-
+    write (stdout, 226) '|  Max number of atoms:', max_atoms, '   Max  number of layers:', max_layer, '   |'
+    226 format(1x,a23,I12,1x,a25,1x,I12,a4)
     write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
 
     allocate (atoms_per_layer(max_layer), stat=ierr)
@@ -1658,7 +1658,7 @@ contains
       write (stdout, *) "|  Bulk                                     ", &
         sum(qe_tsm(1:nbands, 1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, max_atoms + 1)), "      |"
 
-      write (stdout, *) '|  Total quantum efficiency (electrons/photon):', &
+      write (stdout, *) '|  Total Quantum Efficiency (electrons/photon):', &
         sum(qe_tsm(1:nbands, 1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, 1:max_atoms + 1)), '   |'
     end if
 
@@ -1674,20 +1674,22 @@ contains
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
 
       do atom = 1, max_atoms
+        write (stdout, *) trim(atoms_label_tmp(atom_order(atom))),len(trim(atoms_label_tmp(atom_order(atom)))), &
+        & len(atoms_label_tmp(atom_order(atom))), atoms_label_tmp(atom_order(atom))
         write (stdout, *) "|  ", trim(atoms_label_tmp(atom_order(atom))), atom_order(atom), &
           layer(atom), '              ', &
           sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, atom)), "      |"
       end do
-      write (stdout, *) "|  Bulk                                     ", &
+      write (stdout, '(1x,a43,1x,E24.16E3,a7)') "| Bulk                                     ", &
         sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, max_atoms + 1)), "      |"
 
-      write (stdout, *) '|  Total quantum efficiency (electrons/photon):', &
+      write (stdout, '(1x,a46,1x,E24.16E3,a4)') '| Total Quantum Efficiency (electrons/photon):', &
         sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, 1:max_atoms + 1)), '   |'
 
     end if
-    write (stdout, *) '|  Weighted mean transverse energy (eV):', mean_te, '          |'
+    write (stdout, '(1x,a39,1x,f26.16,a11)') '| Weighted mean transverse energy (eV):', mean_te, '          |'
     if (photo_elec_field .gt. 0.0_dp) then
-      write (stdout, *) '|  Total field emission (electrons/A^2):', total_field_emission, '          |'
+      write (stdout, '(1x,a39,1x,f26.16,a11)') '| Total field emission (electrons/A^2):', total_field_emission, '          |'
     end if
     write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
 
