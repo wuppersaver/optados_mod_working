@@ -45,7 +45,7 @@ module od_photo
   real(kind=dp), dimension(:), allocatable :: total_absorption
   real(kind=dp), dimension(:), allocatable :: total_transmittance
   real(kind=dp), allocatable, public, save :: E(:)
-  real(kind=dp), save                   :: delta_bins
+  !real(kind=dp), save                   :: delta_bins
   integer, save :: jdos_nbins
   real(kind=dp), allocatable, dimension(:) :: intra
   real(kind=dp), allocatable, public, dimension(:, :) :: weighted_dos_at_e_photo
@@ -2085,10 +2085,11 @@ contains
          &recip_lattice, num_atoms
     use od_parameters, only: adaptive_smearing, fixed_smearing, iprint, &
          &finite_bin_correction, scissor_op, hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
-         photo, photo_photon_energy, jdos_spacing
+         photo, photo_photon_energy, jdos_spacing, jdos_max_energy
     use od_io, only: io_error, stdout
     use od_electronic, only: band_gradient, nbands, band_energy, nspins, electrons_per_state, &
          & efermi
+    use od_jdos_utils, only: jdos_nbins
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
     implicit none
@@ -2098,6 +2099,7 @@ contains
     integer :: N2, ierr
     real(kind=dp) :: cuml, width, adaptive_smearing_temp, dos_test
     real(kind=dp) :: grad(1:3), step(1:3), EV(0:4), sub_cell_length(1:3)
+    real(kind=dp), save                   :: delta_bins
 
     character(len=1), intent(in)                      :: delta_type
     real(kind=dp), intent(inout), allocatable, optional :: delta_temp(:, :, :, :)
@@ -2119,6 +2121,7 @@ contains
     end select
 
     width = 0.0_dp
+    delta_bins = jdos_max_energy/real(jdos_nbins - 1, dp)
 
     if (linear .or. adaptive) step(:) = 1.0_dp/real(kpoint_grid_dim(:), dp)/2.0_dp
     if (adaptive .or. hybrid_linear) then
@@ -2164,7 +2167,7 @@ contains
             ! band. It's a kind of fudge that we wouldn't need if we had infinitely small bins.
             if (finite_bin_correction .and. (width < delta_bins)) width = delta_bins
 
-            idos = photo_photon_energy/jdos_spacing
+            idos = int(photo_photon_energy/jdos_spacing)
             ! The linear method has a special way to calculate the integrated dos
             ! we have to take account for this here.
             if (linear .and. .not. force_adaptive) then
