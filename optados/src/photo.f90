@@ -262,7 +262,7 @@ contains
         atoms_per_layer(layer(atom)) = atoms_per_layer(layer(atom)) + 1
       end if
     end do
-      
+
   end subroutine calc_layers
 
   !***************************************************************
@@ -392,7 +392,7 @@ contains
       ,N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
-    
+
     do atom = 1, max_atoms                           ! Loop over atoms
       allocate (projected_matrix_weights(nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom), stat=ierr)
       if (ierr /= 0) call io_error('Error: make_photo_weights - allocation of projected matrix_weights failed')
@@ -419,7 +419,7 @@ contains
         write (stdout, '(1x,a78)') '+--------------------- Printing Projected Matrix Weights --------------------+'
         write (stdout, 126) shape(projected_matrix_weights)
         write (stdout, 126) nbands, nbands, num_kpoints_on_node(my_node_id), nspins, N_geom
-        126 format(5(1x,I4)) 
+        126 format(5(1x,I4))
         write (stdout,'(9999(es15.8))') (((((projected_matrix_weights(n_eigen, n_eigen2, N, N_spin, N2),N2=1,N_geom)&
         ,N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),n_eigen2=1,nbands),n_eigen=1,nbands)
         write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -427,7 +427,7 @@ contains
 
       ! Send matrix element to jDOS routine and get weighted jDOS back
       call jdos_utils_calculate(projected_matrix_weights, weighted_jdos)
-      
+
       if (iprint .eq. 4 .and. on_root) then
         write (stdout, '(1x,a78)') '+------------------------ Printing Weighted Joint-DOS -----------------------+'
         write (stdout, 124) shape(weighted_jdos)
@@ -460,7 +460,7 @@ contains
           write (stdout, '(1x,a78)') '+------------------------ Printing DOS Matrix Weights -----------------------+'
           write (stdout, 125) shape(dos_matrix_weights)
           write (stdout, 125) size(matrix_weights,5), nbands, num_kpoints_on_node(my_node_id), nspins
-          125 format(4(1x,I4)) 
+          125 format(4(1x,I4))
           write(stdout,'(9999(es15.8))') ((((dos_matrix_weights(n_eigen, n_eigen2, N, s),s=1,nspins),N=1,&
           num_kpoints_on_node(my_node_id)),n_eigen2=1, nbands),n_eigen=1,size(matrix_weights, 5))
           write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
@@ -625,7 +625,7 @@ contains
       deallocate (attenuation_layer, stat=ierr)
       if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate attenuation_layer')
     end if
-    
+
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
       write (stdout, '(1x,I4,1x,I4,1x)') jdos_nbins, max_layer
@@ -767,10 +767,10 @@ contains
 
           E_kinetic(n_eigen, N, N_spin) = (band_energy(n_eigen, N_spin, N) + photo_photon_energy - evacuum_eff)
 
-          !! The total kinetic enery E_kinetic_total is composed of E|| and E_transvers, therefore the angle argument always 
-          !! has to be < 1, because theta = acos(E||/E_kinetic_total). The previous formula was: (E_kinetic(n_eigen, N, N_spin) - 
-          !! E_transverse(n_eigen, N, N_spin))/E_kinetic(n_eigen, N, N_spin) If the total kinetic energy is negative and 
-          !! E_transverse is positive, this causes the acos to be undefined, as the previous formula did not include the abs 
+          !! The total kinetic enery E_kinetic_total is composed of E|| and E_transvers, therefore the angle argument always
+          !! has to be < 1, because theta = acos(E||/E_kinetic_total). The previous formula was: (E_kinetic(n_eigen, N, N_spin) -
+          !! E_transverse(n_eigen, N, N_spin))/E_kinetic(n_eigen, N, N_spin) If the total kinetic energy is negative and
+          !! E_transverse is positive, this causes the acos to be undefined, as the previous formula did not include the abs
           !!statements. Also the total kinetic energy has to be > 0 to have a physical emission
           if (E_kinetic(n_eigen, N, N_spin) .gt. 0.0_dp .and. E_kinetic(n_eigen, N, N_spin) .gt. E_transverse(n_eigen, N, N_spin))&
           & then
@@ -796,13 +796,11 @@ contains
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------ Printing Transverse Energy ------------------------+'
       write (stdout,'(3(1x,I4))') shape(E_transverse)
-      write (stdout,'(3(1x,I4))') nbands, num_kpoints_on_node(my_node_id), nspins 
+      write (stdout,'(3(1x,I4))') nbands, num_kpoints_on_node(my_node_id), nspins
       write(stdout,'(9999(es15.8))') (((E_transverse(n_eigen,N,N_spin),N_spin=1,nspins),N=1,num_kpoints_on_node(my_node_id)),&
       n_eigen=1,nbands)
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
-
-    
 
   end subroutine calc_angle
 
@@ -1041,7 +1039,7 @@ contains
     end if
 
     call jdos_utils_calculate_delta(delta_temp)
-    
+
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+---------------------- Printing Delta Function Values ----------------------+'
       write (stdout,'(5(1x,I4))') shape(delta_temp)
@@ -1055,7 +1053,7 @@ contains
     end if
 
     if (iprint .eq. 5 .and. on_root) then
-      i = 14 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing 
+      i = 14 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
       write (stdout, '(1x,a217)') 'band_eigenvalue - matrix_weights - delta_temp - electron_esc - electrons_per_state -&
       & kpoint_weight - I_layer - qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band&
@@ -1097,7 +1095,7 @@ contains
           do n_eigen2 = 1, nbands
             do atom = 1, max_atoms
               if (iprint .eq. 5 .and. on_root) then
-                write (stdout, '(1x,E26.15E3,13(1x,E17.9E3))') band_energy(n_eigen2, N_spin, N), & 
+                write (stdout, '(1x,E26.15E3,13(1x,E17.9E3))') band_energy(n_eigen2, N_spin, N), &
                 matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), delta_temp(n_eigen, n_eigen2, N, N_spin), &
                 electron_esc(n_eigen, N, N_spin, atom), electrons_per_state, kpoint_weight(N), I_layer(N_energy, layer(atom)), &
                 qe_factor, transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin), &
@@ -1116,7 +1114,7 @@ contains
                  qe_factor*transverse_g*vac_g*fermi_dirac* &
                  (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
-                (1.0_dp + field_emission(n_eigen, N_spin, N)) 
+                (1.0_dp + field_emission(n_eigen, N_spin, N))
             end do
             qe_tsm(n_eigen, n_eigen2, N, N_spin, max_atoms + 1) = &
               (matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
@@ -1135,7 +1133,7 @@ contains
     if (iprint .eq. 5 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
-    
+
     if (allocated(delta_temp)) then
       deallocate (delta_temp, stat=ierr)
       if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate kpoint_r_cart')
@@ -1178,7 +1176,7 @@ contains
     end if
 
   end subroutine calc_three_step_model
-  
+
   !===============================================================================
   subroutine calc_one_step_model
     !===============================================================================
@@ -1260,7 +1258,6 @@ contains
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
-          
           argument = (band_energy(n_eigen, N_spin, N) - efermi)/(kB*photo_temperature)
           ! This is a bit of an arbitrary condition, but it turns out
           ! that this corresponds to a exponential value of ~1E+/-250
@@ -1273,23 +1270,19 @@ contains
           else
             fermi_dirac = 1.0_dp/(exp(argument) + 1.0_dp)
           end if
-          
           if ((photo_photon_energy - E_transverse(n_eigen, N, N_spin)) .le. (evacuum_eff - efermi)) then
             transverse_g = gaussian((photo_photon_energy - E_transverse(n_eigen, N, N_spin)), &
                                     width, (evacuum_eff - efermi))/norm_vac
           else
             transverse_g = 1.0_dp
           end if
-          
           if ((band_energy(n_eigen, N_spin, N) + photo_photon_energy) .lt. evacuum_eff) then
             vac_g = gaussian((band_energy(n_eigen, N_spin, N) + photo_photon_energy) + &
                              scissor_op, width, evacuum_eff)/norm_vac
           else
             vac_g = 1.0_dp
           end if
-          
           n_eigen2 = nbands + 1
-          
           do atom = 1, max_atoms
               qe_osm(n_eigen, N, N_spin, atom) = &
                 (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
@@ -1522,7 +1515,7 @@ contains
         end do       ! Loop over state 1
       end do           ! Loop over spins
     end do               ! Loop over kpoints
-    
+
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+------------------------- Printing Free OM Weights -------------------------+'
       write (stdout, 126) shape(foptical_matrix_weights)
@@ -1598,7 +1591,7 @@ contains
       else
         mean_te = 0.0_dp
       end if
-      
+
       if (allocated(te_tsm_temp)) then
         deallocate (te_tsm_temp, stat=ierr)
         if (ierr /= 0) call io_error('Error: photo_deallocate - failed to deallocate kpoint_r_cart')
@@ -1793,7 +1786,7 @@ contains
         /sum(weighted_temp(1:max_energy, 1:num_kpoints_on_node(my_node_id), 1:nspins, 1:nbands, 1:max_atoms + 1))
       else
         qe_norm = 1.0_dp
-      end if      
+      end if
 
       do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
         do N_spin = 1, nspins                    ! Loop over spins
@@ -1939,11 +1932,11 @@ contains
     real(kind=dp), allocatable, dimension(:, :, :) :: tunnel_prob
     real(kind=dp), allocatable, dimension(:, :, :) :: G
     real(kind=dp), allocatable, dimension(:, :, :) :: temp_emission
-    real(kind=dp) :: fermi_dirac, barrier_height
+    real(kind=dp) :: fermi_dirac, barrier_height,argument
 
     !integer :: N,N_spin,n_eigen,z_distance,z,z_max
     integer :: N, N_spin, n_eigen
-    real(kind=dp) :: l_prime, v_function, b_factor, transmission_prob, band_eff
+    real(kind=dp) :: l_prime, v_function, b_factor, transmission_prob
     real(kind=dp) :: p1, p2, p3, p4, q1, q2, q3, q4, p_term, q_term, trans_prob_long, v_function_long
 
     evacuum = efermi + photo_work_function
@@ -1971,9 +1964,19 @@ contains
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
           barrier_height = photo_work_function - (band_energy(n_eigen, N_spin, N) - efermi)
-          band_eff = (band_energy(n_eigen, N_spin, N) - efermi)
-          fermi_dirac = 1.0_dp/(exp((band_eff/(kB*photo_temperature))) + 1.0_dp)
           field_energy(n_eigen, N_spin, N) = abs(evacuum - band_energy(n_eigen, N_spin, N))
+          argument = (band_energy(n_eigen, N_spin, N) - efermi/(kB*photo_temperature))
+          ! This is a bit of an arbitrary condition, but it turns out
+          ! that this corresponds to a exponential value of ~1E+/-250
+          ! and this cutoff condition saves us from running into arithmetic
+          ! issues when computing fermi_dirac due to possible underflow.
+          if (argument .gt. 555.0_dp) then
+            fermi_dirac = 0.0_dp
+          elseif (argument .lt. -575.0_dp) then
+            fermi_dirac = 1.0_dp
+          else
+            fermi_dirac = 1.0_dp/(exp(argument) + 1.0_dp)
+          end if
 
           if ((photo_elec_field/(4*pi*epsilon_zero*1E-4)*photo_elec_field) .lt. (field_energy(n_eigen, N_spin, N)**2)) then
             if (barrier_height .le. 0.0) then
@@ -1983,10 +1986,10 @@ contains
               p_term = 1.0_dp + (p1*l_prime) + (p2*l_prime**2) + (p3*l_prime**3) + (p4*l_prime**4)
               q_term = q1 + (q2*l_prime) + (q3*l_prime**2) + (q4*l_prime**3)
               v_function_long = (1 - l_prime)*p_term + q_term*l_prime*log(l_prime)
-              
+
               ! v_function = 1 - l_prime + (1.0_dp/6.0_dp)*l_prime*log(l_prime)
               ! transmission_prob = 1.0_dp/exp(v_function*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/photo_elec_field))
-              
+
               trans_prob_long = exp(-1.0_dp*v_function_long*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/photo_elec_field))
               field_emission(n_eigen, N_spin, N) = trans_prob_long
             end if
@@ -2212,7 +2215,7 @@ contains
 
   end subroutine calculate_delta
 
-  
+
 
   !***************************************************************
   subroutine photo_deallocate
