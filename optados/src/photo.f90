@@ -811,6 +811,7 @@ module od_photo
     use od_parameters, only: photo_imfp_const, iprint
     implicit none
     integer :: atom, N, N_spin, n_eigen, ierr
+    real(kind=dp) :: exponent
 
     allocate (new_atoms_coordinates(3, max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of new_atoms_coordinates failed')
@@ -831,9 +832,13 @@ module od_photo
         do n_eigen = 1, nbands
           do atom = 1, max_atoms
             if (cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad) .gt. 0.0_dp) then
-              electron_esc(n_eigen, N, N_spin, atom) = &
-                exp((new_atoms_coordinates(3, atom_order(atom))/ &
-                     cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad))/photo_imfp_const)
+              exponent = (new_atoms_coordinates(3, atom_order(atom))/ &
+              &cos(theta_arpes(n_eigen, N, N_spin)*deg_to_rad))/photo_imfp_const
+              if (exponent .gt. -575.0_dp) then
+                electron_esc(n_eigen, N, N_spin, atom) = exp(exponent)
+              else
+                electron_esc(n_eigen, N, N_spin, atom) = 0.0_dp
+              end if
             end if
           end do
         end do
