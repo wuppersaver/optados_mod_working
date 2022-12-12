@@ -1308,7 +1308,7 @@ module od_photo
       close (unit=matrix_unit)
     end if
 
-    if (iprint .eq. 4 .and. on_root) then
+    if ((iprint .eq. 4 .and. on_root) .or. (iprint .eq. 6 .and. on_root)) then
       write (stdout, '(1x,a78)') '+------------------------- Printing 1step QE Matrix -------------------------+'
       write (stdout, 125) shape(qe_osm) 
       write (stdout, 125) nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms+1
