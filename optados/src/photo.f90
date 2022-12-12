@@ -82,7 +82,7 @@ module od_photo
 
   ! Added by Felix Mildner, 12/2022
 
-  integer :: N_energy
+  integer :: index_energy
   contains
 
   subroutine photo_calculate
@@ -360,16 +360,10 @@ module od_photo
     allocate (reflect_photo(jdos_nbins, max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_photo_optics - allocation of reflect_photo failed')
 
-    N_energy = int(photo_photon_energy/jdos_spacing)
+    index_energy = int(photo_photon_energy/jdos_spacing)
 
     call make_weights(matrix_weights)
     N_geom = size(matrix_weights, 5)
-    ! !! Taken from optics.f90 because N_geom is redefined here and has to be re-initialised !!
-    ! if (.not. index(optics_geom, 'tensor') > 0) then ! I can rewrite this in a simplier way??
-    !   N_geom = 1
-    ! elseif (index(optics_geom, 'tensor') > 0) then
-    !   N_geom = 6
-    ! end if
 
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+-------------------------- Printing Matrix Weights -------------------------+'
@@ -479,9 +473,9 @@ module od_photo
 
       end if
 
-      absorp_photo(N_energy, atom) = absorp(N_energy)
+      absorp_photo(index_energy, atom) = absorp(index_energy)
 
-      reflect_photo(N_energy, atom) = reflect(N_energy)
+      reflect_photo(index_energy, atom) = reflect(index_energy)
 
       deallocate (dos_matrix_weights,stat=ierr)
       if (ierr /= 0) call io_error('Error: calc_photo_optics - failed to deallocate dos_matrix_weights')
@@ -596,22 +590,21 @@ module od_photo
     attenuation_layer = 1.0_dp
 
     do atom = 1, max_atoms
-      attenuation_layer(N_energy, atom) = exp(-(absorp_photo(N_energy, atom)*light_path(atom))*1E-10)
-      absorption_layer(N_energy, atom) = absorp_photo(N_energy, atom)* &
-                                         thickness_atom(atom)*1E-10
+      attenuation_layer(index_energy, atom) = exp(-(absorp_photo(index_energy, atom)*light_path(atom))*1E-10)
+      absorption_layer(index_energy, atom) = absorp_photo(index_energy, atom)*thickness_atom(atom)*1E-10
 
     end do
 
     I_0 = 1.0_dp
     I_layer = 1.0_dp
-    I_layer(:, 1) = I_0 - reflect_photo(N_energy, 1)
+    I_layer(:, 1) = I_0 - reflect_photo(index_energy, 1)
     if (max_layer .gt. 1) then
 
       do atom = first_atom_second_l, max_atoms
-        I_layer(N_energy, layer(atom)) = I_layer(N_energy, layer(atom) - 1)* &
-                                         exp(-(absorp_photo(N_energy, atom)*light_path(atom)*1E-10))
-        if (I_layer(N_energy, layer(atom)) .lt. 0.0_dp) then
-          I_layer(N_energy, layer(atom)) = 0.0_dp
+        I_layer(index_energy, layer(atom)) = I_layer(index_energy, layer(atom) - 1)* &
+                                         exp(-(absorp_photo(index_energy, atom)*light_path(atom)*1E-10))
+        if (I_layer(index_energy, layer(atom)) .lt. 0.0_dp) then
+          I_layer(index_energy, layer(atom)) = 0.0_dp
         end if
       end do
 
@@ -910,11 +903,11 @@ module od_photo
       end do
     end do
 
-    bulk_light_tmp(1) = I_layer(N_energy, layer(max_atoms))* &
-                        exp(-(absorp_photo(N_energy, max_atoms)*thickness_atom(max_atoms)*1E-10))
+    bulk_light_tmp(1) = I_layer(index_energy, layer(max_atoms))* &
+                        exp(-(absorp_photo(index_energy, max_atoms)*thickness_atom(max_atoms)*1E-10))
     do i = 2, num_layers
       bulk_light_tmp(i) = bulk_light_tmp(i - 1)* &
-                          exp(-(absorp_photo(N_energy, max_atoms)*i*thickness_atom(max_atoms)*1E-10))
+                          exp(-(absorp_photo(index_energy, max_atoms)*i*thickness_atom(max_atoms)*1E-10))
     end do
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
@@ -1082,7 +1075,7 @@ module od_photo
               if (iprint .eq. 5 .and. on_root) then
                 write (stdout, '(1x,E26.15E3,13(1x,E17.9E3))') band_energy(n_eigen2, N_spin, N), &
                 matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), delta_temp(n_eigen, n_eigen2, N, N_spin), &
-                electron_esc(n_eigen, N, N_spin, atom), electrons_per_state, kpoint_weight(N), I_layer(N_energy, layer(atom)), &
+                electron_esc(n_eigen, N, N_spin, atom), electrons_per_state, kpoint_weight(N), I_layer(index_energy, layer(atom)), &
                 qe_factor, transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin), &
                 pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
               end if
@@ -1095,7 +1088,7 @@ module od_photo
                  delta_temp(n_eigen, n_eigen2, N, N_spin)* &
                  electron_esc(n_eigen, N, N_spin, atom)* &
                  electrons_per_state*kpoint_weight(N)* &
-                 (I_layer(N_energy, layer(atom)))* &
+                 (I_layer(index_energy, layer(atom)))* &
                  qe_factor*transverse_g*vac_g*fermi_dirac* &
                  (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
@@ -1263,14 +1256,14 @@ module od_photo
                 (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
                 (electron_esc(n_eigen, N, N_spin, atom))* &
                 electrons_per_state*kpoint_weight(N)* &
-                (I_layer(N_energy, layer(atom)))* &
+                (I_layer(index_energy, layer(atom)))* &
                 qe_factor*transverse_g*vac_g*fermi_dirac* &
                 (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
                   (1.0_dp + field_emission(n_eigen, N_spin, N))
             if (iprint .eq. 5 .and. on_root) then
               write (stdout, '(12(1x,E16.8E4))') foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
-              electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(N_energy, layer(atom)), &
+              electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(index_energy, layer(atom)), &
               qe_factor,transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin),&
               pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
             end if
@@ -1593,7 +1586,7 @@ module od_photo
         'eV         Photon Energy', photo_photon_energy, 'eV   |'
       write (stdout, 224) '| Effective Work Function', work_function_eff, &
         'eV         Electric Field', photo_elec_field, 'V/A  |'
-      write (stdout, '(1x,a78)') '| Final state : Bloch state                                                  |'
+      write (stdout, '(1x,a78)') '| Final State : Bloch state                                                  |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
 
@@ -1615,7 +1608,7 @@ module od_photo
         'eV         Photon Energy', photo_photon_energy, ' eV   |'
       write (stdout, 224) '| Effective Work Function', work_function_eff, &
         'eV         Electric Field', photo_elec_field, ' V/A  |'
-      write (stdout, '(1x,a78)') '| Final state : Free electron state                                          |'
+      write (stdout, '(1x,a78)') '| Final State : Free electron state                                          |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
 
@@ -1629,7 +1622,7 @@ module od_photo
         sum(qe_osm(1:nbands, 1:num_kpoints_on_node(my_node_id), 1:nspins, 1:max_atoms + 1)), '      |'
 
     end if
-    write (stdout, 228) '| Weighted mean transverse energy (eV):', mean_te, '      |'
+    write (stdout, 228) '| Weighted Mean Transverse Energy (eV):', mean_te, '      |'
     if (photo_elec_field .gt. 0.0_dp) then
       write (stdout, 229) '| Total field emission (electrons/A^2):', total_field_emission, '      |'
     end if
@@ -2135,13 +2128,13 @@ module od_photo
             ! band. It's a kind of fudge that we wouldn't need if we had infinitely small bins.
             if (finite_bin_correction .and. (width < delta_bins)) width = delta_bins
 
-            idos = int(photo_photon_energy/jdos_spacing)
             ! The linear method has a special way to calculate the integrated dos
             ! we have to take account for this here.
             if (linear .and. .not. force_adaptive) then
-              delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), E(idos), cuml)
+              delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), photo_photon_energy, cuml)
             else
-              delta_temp(ib, jb, ik, is) = gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,E(idos))!&
+              delta_temp(ib, jb, ik, is) = gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,&
+              &photo_photon_energy)
             end if
 
           end do unocc_states
