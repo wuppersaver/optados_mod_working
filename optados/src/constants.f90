@@ -65,6 +65,16 @@ module od_constants
   real(kind=dp), parameter, public :: boltzmann = 1.38064852E-23_dp      !J K^-1
   real(kind=dp), parameter, public :: kB = 8.617333262E-5_dp                ! ev K^-1
   real(kind=dp), parameter, public :: ge = 10.24633_dp
+  !b_factor = (16.0_dp*(pi**2)*sqrt(2.0_dp))/3.0_dp
+  real(kind=dp), parameter, public :: b_factor = 74.4412181295_dp
+  real(kind=dp), parameter, public :: p1 = 0.03270530446_dp
+  real(kind=dp), parameter, public :: p2 = 0.009157798739_dp
+  real(kind=dp), parameter, public :: p3 = 0.002644272807_dp
+  real(kind=dp), parameter, public :: p4 = 0.00008987173811_dp
+  real(kind=dp), parameter, public :: q1 = 0.1874993441_dp
+  real(kind=dp), parameter, public :: q2 = 0.01750636947_dp
+  real(kind=dp), parameter, public :: q3 = 0.005527069444_dp
+  real(kind=dp), parameter, public :: q4 = 0.001023904180_dp
 
   character(len=3), parameter, dimension(109), public :: periodic_table_name = (/ &
        & 'H ', 'He', &

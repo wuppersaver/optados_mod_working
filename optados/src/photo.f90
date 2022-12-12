@@ -45,7 +45,6 @@ module od_photo
   real(kind=dp), dimension(:), allocatable :: total_absorption
   real(kind=dp), dimension(:), allocatable :: total_transmittance
   real(kind=dp), allocatable, public, save :: E(:)
-  !real(kind=dp), save                   :: delta_bins
   integer, save :: jdos_nbins
   real(kind=dp), allocatable, dimension(:) :: intra
   real(kind=dp), allocatable, public, dimension(:, :) :: weighted_dos_at_e_photo
@@ -1955,19 +1954,16 @@ contains
     use od_electronic, only: efermi, band_energy, nbands, nspins
     use od_io, only: stdout, io_error
     use od_comms, only: my_node_id
-    use od_constants, only: pi, epsilon_zero, ge, kB, e_charge
+    use od_constants, only: pi, epsilon_zero, ge, kB, e_charge,b_factor,p1,p2,p3,p4,q1,q2,q3,q4
 
     integer :: ierr
     real(kind=dp), allocatable, dimension(:, :, :) :: field_energy
-    real(kind=dp), allocatable, dimension(:, :, :) :: tunnel_prob
+    !real(kind=dp), allocatable, dimension(:, :, :) :: tunnel_prob
     real(kind=dp), allocatable, dimension(:, :, :) :: G
     real(kind=dp), allocatable, dimension(:, :, :) :: temp_emission
-    real(kind=dp) :: fermi_dirac, barrier_height,argument, exponent
-
-    !integer :: N,N_spin,n_eigen,z_distance,z,z_max
+    real(kind=dp) :: fermi_dirac, barrier_height, argument, exponent
+    real(kind=dp) :: l_prime,p_term, q_term, v_function, transmission_prob
     integer :: N, N_spin, n_eigen
-    real(kind=dp) :: l_prime, v_function, b_factor, transmission_prob
-    real(kind=dp) :: p1, p2, p3, p4, q1, q2, q3, q4, p_term, q_term, trans_prob_long, v_function_long
 
     allocate (field_energy(nbands, nspins, num_kpoints_on_node(my_node_id)), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_field_emission - allocation of field_energy failed')
@@ -1980,16 +1976,6 @@ contains
     allocate (temp_emission(nbands, nspins, num_kpoints_on_node(my_node_id)), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_field_emission - allocation of temp_emission failed')
     temp_emission = 0.0_dp
-
-    b_factor = (16.0_dp*(pi**2)*sqrt(2.0_dp))/3.0_dp
-    p1 = 0.03270530446_dp
-    p2 = 0.009157798739_dp
-    p3 = 0.002644272807_dp
-    p4 = 0.00008987173811_dp
-    q1 = 0.1874993441_dp
-    q2 = 0.01750636947_dp
-    q3 = 0.005527069444_dp
-    q4 = 0.001023904180_dp
 
     evacuum = efermi + photo_work_function
 
@@ -2018,18 +2004,15 @@ contains
               l_prime = (e_charge/4*pi*epsilon_zero*1E-4_dp)*photo_elec_field*(1/barrier_height**2)
               p_term = 1.0_dp + (p1*l_prime) + (p2*l_prime**2.0_dp) + (p3*l_prime**3.0_dp) + (p4*l_prime**4.0_dp)
               q_term = q1 + (q2*l_prime) + (q3*l_prime**2.0_dp) + (q4*l_prime**3.0_dp)
-              v_function_long = (1.0_dp - l_prime)*p_term + q_term*l_prime*log(l_prime)
+              v_function = (1.0_dp - l_prime)*p_term + q_term*l_prime*log(l_prime)
 
-              ! v_function = 1 - l_prime + (1.0_dp/6.0_dp)*l_prime*log(l_prime)
-              ! transmission_prob = 1.0_dp/exp(v_function*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/photo_elec_field))
-              exponent = -1.0_dp*v_function_long*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/photo_elec_field)
-              !write(stdout, *) exponent, exp(exponent)
+              exponent = -1.0_dp*v_function*b_factor*(barrier_height**(2.0_dp/3.0_dp))*(1.0_dp/photo_elec_field)
               if (exponent .lt. -575.0_dp) then
-                trans_prob_long = 0.0_dp
+                transmission_prob = 0.0_dp
               else
-                trans_prob_long = exp(exponent)
+                transmission_prob = exp(exponent)
               end if
-              field_emission(n_eigen, N_spin, N) = trans_prob_long
+              field_emission(n_eigen, N_spin, N) = transmission_prob
             end if
           end if
           temp_emission(n_eigen, N_spin, N) = field_emission(n_eigen, N_spin, N)*fermi_dirac
