@@ -45,12 +45,9 @@ module od_photo
   real(kind=dp), dimension(:), allocatable :: total_absorption
   real(kind=dp), dimension(:), allocatable :: total_transmittance
   real(kind=dp), allocatable, public, save :: E(:)
-  integer, save :: jdos_nbins
-  real(kind=dp), allocatable, dimension(:) :: intra
   real(kind=dp), allocatable, public, dimension(:, :) :: weighted_dos_at_e_photo
   real(kind=dp), allocatable, dimension(:, :, :, :) :: epsilon
   real(kind=dp), allocatable, dimension(:, :) :: epsilon_sum
-  real(kind=dp), allocatable, dimension(:, :, :) :: refract_photo
   real(kind=dp), allocatable, dimension(:, :)  :: reflect_photo
   real(kind=dp), allocatable, dimension(:, :) :: absorp_photo
 
@@ -66,14 +63,12 @@ module od_photo
   real(kind=dp), allocatable, dimension(:, :, :) :: E_transverse
   real(kind=dp), allocatable, dimension(:, :, :) :: bulk_prob
   real(kind=dp), allocatable, dimension(:) :: t_energy
-  real(kind=dp), allocatable, dimension(:, :) :: weighted_qe
   real(kind=dp), allocatable, dimension(:, :, :, :, :) :: weighted_temp
   integer :: max_energy
   real(kind=dp), allocatable, dimension(:, :, :, :) :: qe_osm
   real(kind=dp), allocatable, dimension(:, :, :, :, :) :: qe_tsm
   integer, dimension(:), allocatable :: atom_order
   integer, dimension(:), allocatable :: atoms_per_layer
-  real(kind=dp), dimension(3) :: t_cart
   real(kind=dp) :: work_function_eff
   real(kind=dp) :: evacuum
   real(kind=dp) :: evacuum_eff
@@ -82,34 +77,30 @@ module od_photo
   integer, allocatable, dimension(:) :: layer
   integer :: N_geom
   integer :: max_atoms
-  integer :: max_doubling_atom
   integer :: max_layer
-  real(kind=dp) :: e_fermi
   real(kind=dp) :: q_weight
 
   ! Added by Felix Mildner, 12/2022
 
   integer :: N_energy
-contains
+  contains
 
   subroutine photo_calculate
     !
     !  Program to calculate the photoemission
     !
 
-    use od_electronic, only: elec_dealloc_optical, elec_pdos_read, &
-                             optical_mat, elec_read_optical_mat, nbands, nspins, &
-                             efermi, efermi_set, elec_dealloc_optical, elec_read_foptical_mat
-    use od_cell, only: cell_volume, num_kpoints_on_node
+    use od_electronic, only: elec_dealloc_optical, elec_pdos_read, elec_read_optical_mat, &
+    & efermi, efermi_set, elec_dealloc_optical, elec_read_foptical_mat
     use od_jdos_utils, only: jdos_utils_calculate, setup_energy_scale
-    use od_comms, only: on_root, my_node_id
-    use od_parameters, only: optics_geom, adaptive, linear, fixed, optics_intraband, &
-                             optics_drude_broadening, photo_work_function, photo_model, &
-                             photo_elec_field
+    use od_comms, only: on_root
+    use od_parameters, only: photo_work_function, photo_model, photo_elec_field
     use od_dos_utils, only: dos_utils_set_efermi, dos_utils_calculate_at_e
     use od_io, only: stdout, io_error
     use od_pdos, only: pdos_calculate
+
     implicit none
+
     if (on_root) then
       write (stdout, '(1x,a78)') '+============================================================================+'
       write (stdout, '(1x,a78)') '+                             Photoemission Calculation                      +'
@@ -268,14 +259,13 @@ contains
   subroutine make_pdos_weights_atoms
   !***************************************************************
     !This subroutine is equivalent to pdos_merge of pdos.F90, but only for atoms
-    use od_electronic, only: pdos_orbital, pdos_weights, pdos_mwab, nspins, &
-                             num_electrons, efermi, band_energy
+    use od_electronic, only: pdos_orbital, pdos_weights, pdos_mwab, nspins
     use od_cell, only: num_kpoints_on_node, num_atoms
     use od_comms, only: my_node_id,on_root
     use od_io, only: io_error,stdout
     use od_parameters, only: iprint
     implicit none
-    integer :: N, N_spin, n_eigen, np, ierr, atom, i, j, i_max
+    integer :: N, N_spin, n_eigen, np, ierr, atom, i, i_max
 
     allocate (pdos_weights_atoms(num_atoms, pdos_mwab%nbands, num_kpoints_on_node(my_node_id), nspins), stat=ierr)
     if (ierr /= 0) call io_error('Error: make_pdos_weights_atoms - allocation of pdos_weights_atoms failed')
@@ -344,27 +334,22 @@ contains
   subroutine calc_photo_optics
     !***************************************************************
 
-    use od_optics, only: make_weights, calc_epsilon_2, calc_epsilon_1, &
-                         calc_refract, calc_absorp, calc_reflect, epsilon, refract, absorp, reflect, &
-                         intra
+    use od_optics, only: make_weights, calc_epsilon_2, calc_epsilon_1, calc_refract, calc_absorp, calc_reflect, &
+    & epsilon, refract, absorp, reflect, intra
     use od_io, only: stdout, io_error
-    use od_electronic, only: optical_mat, elec_read_optical_mat, nbands, nspins, &
-                             efermi, efermi_set, elec_dealloc_optical, &
-                             band_gradient, elec_read_band_gradient, &
-                             nbands, nspins, band_energy
-    use od_cell, only: cell_volume, num_kpoints_on_node, kpoint_r, &
-                       num_atoms, num_kpoints_on_node
-    use od_jdos_utils, only: jdos_utils_calculate, jdos_nbins, E, &
-                             setup_energy_scale
+    use od_electronic, only: elec_read_optical_mat, nbands, nspins, efermi, elec_dealloc_optical, elec_read_band_gradient,&
+    & nbands, nspins, band_energy
+    use od_cell, only: num_kpoints_on_node, num_kpoints_on_node
+    use od_jdos_utils, only: jdos_utils_calculate, jdos_nbins, E, setup_energy_scale
     use od_comms, only: on_root, my_node_id
-    use od_parameters, only: optics_geom, adaptive, linear, fixed, optics_intraband, &
-                             optics_drude_broadening, photo_slab_volume, jdos_spacing, photo_photon_energy,iprint
+    use od_parameters, only: optics_intraband, jdos_spacing, photo_photon_energy,iprint
     use od_dos_utils, only: dos_utils_calculate_at_e
     use od_constants, only: epsilon_0, e_charge
+
     implicit none
+    
     real(kind=dp), allocatable, dimension(:, :, :, :) :: dos_matrix_weights
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e
-    !real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e_photo
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
 
     integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr
@@ -529,18 +514,16 @@ contains
     !***************************************************************
     ! This subroutine calculates the absorption coefficient
 
-    use od_cell, only: num_atoms, atoms_pos_cart_photo, num_species
-    use od_jdos_utils, only: jdos_nbins, E
-    use od_parameters, only: photo_photon_energy, jdos_spacing, photo_surface_area, iprint
+    use od_cell, only: atoms_pos_cart_photo
+    use od_jdos_utils, only: jdos_nbins
+    use od_parameters, only: iprint
     use od_io, only: stdout, io_error
     use od_comms, only: on_root
     implicit none
     real(kind=dp), dimension(:), allocatable :: light_path
     real(kind=dp), dimension(:, :), allocatable :: attenuation_layer
-    real(kind=dp) :: transmittance
-    integer :: atom, i, ierr, first_atom_second_l, last_atom_secondlast_l
     real(kind=dp) :: I_0
-    integer :: jdos_bin, num_layer
+    integer :: atom, i, ierr, first_atom_second_l, last_atom_secondlast_l, jdos_bin, num_layer
 
     allocate (thickness_atom(max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of thickness_atom failed')
@@ -684,25 +667,18 @@ contains
     ! Phi: angle between the x and y components parallel to the surface
     ! Victor Chang, 7th February 2020
     !===============================================================================
-    use od_cell, only: num_kpoints_on_node, recip_lattice, &
-                       cell_calc_kpoint_r_cart, kpoint_r_cart, kpoint_weight, num_atoms
-    use od_electronic, only: nbands, nspins, band_energy, efermi, &
-                             electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
-                             elec_read_band_curvature, band_curvature
+    use od_cell, only: num_kpoints_on_node, cell_calc_kpoint_r_cart, kpoint_r_cart
+    use od_electronic, only: nbands, nspins, band_energy, band_gradient, elec_read_band_gradient, elec_read_band_curvature, &
+    & band_curvature
     use od_comms, only: my_node_id, on_root
-    use od_parameters, only: photo_work_function, photo_photon_energy, photo_temperature, iprint,&
-                             photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
-                             fixed_smearing, photo_e_units, finite_bin_correction, adaptive_smearing, &
-                             hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, photo_momentum
+    use od_parameters, only: photo_photon_energy, iprint, photo_momentum
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
-    use od_io, only: stdout, io_error, seedname, io_file_unit, stdout
+    use od_io, only: stdout, io_error, io_file_unit, stdout
     use od_jdos_utils, only: jdos_utils_calculate
-    use od_jdos_utils, only: jdos_nbins, E
     use od_constants, only: hbar, ev_to_j, j_to_ev, e_mass, rad_to_deg
     implicit none
-    integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, transitions_den, transitions_num
+    integer :: N, N_spin, n_eigen, ierr
 
     real(kind=dp), allocatable, dimension(:, :, :):: E_x
     real(kind=dp), allocatable, dimension(:, :, :):: E_y
@@ -835,15 +811,13 @@ contains
     ! This subroutine calculates the electron escape depth
 
     use od_constants, only: dp, deg_to_rad
-    use od_electronic, only: nbands, nspins, band_energy, efermi
-    use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
-                       atoms_pos_cart_photo
+    use od_electronic, only: nbands, nspins
+    use od_cell, only: num_kpoints_on_node, atoms_pos_cart_photo
     use od_io, only: io_error, stdout
     use od_comms, only: my_node_id, on_root
     use od_parameters, only: photo_imfp_const, iprint
     implicit none
     integer :: atom, N, N_spin, n_eigen, ierr
-    real(kind=dp) :: x, g2, efermi_scaled, a !(Evacuum-Ef)
 
     allocate (new_atoms_coordinates(3, max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_electron_esc - allocation of new_atoms_coordinates failed')
@@ -891,20 +865,16 @@ contains
     ! This subroutine calculates the electron escape depth
 
     use od_constants, only: dp, deg_to_rad
-    use od_electronic, only: nbands, nspins, band_energy, efermi
-    use od_cell, only: nkpoints, num_kpoints_on_node, num_atoms, &
-                       atoms_pos_cart_photo, num_atoms, num_species
+    use od_electronic, only: nbands, nspins
+    use od_cell, only: num_kpoints_on_node
     use od_comms, only: my_node_id
-    use od_parameters, only: photo_imfp_const, photo_photon_energy, jdos_spacing, bulk_length
-    use od_jdos_utils, only: jdos_nbins, E
-    use od_io, only: stdout, io_error
+    use od_parameters, only: photo_imfp_const, bulk_length
+    use od_io, only: io_error
     implicit none
     real(kind=dp), dimension(:, :, :, :), allocatable :: bulk_esc_tmp
     real(kind=dp), dimension(:), allocatable :: bulk_light_tmp
     real(kind=dp), dimension(:, :, :, :), allocatable :: bulk_prob_tmp
-    real(kind=dp) :: bulk_thickness
-    integer :: N, N_spin, n_eigen, i, num_layers
-    integer :: atom, ierr
+    integer :: N, N_spin, n_eigen, i, num_layers, ierr
     real(kind=dp) :: exponent
 
     num_layers = int((photo_imfp_const*bulk_length)/thickness_atom(max_atoms))
@@ -992,31 +962,21 @@ contains
     ! Victor Chang, 7th February 2020
     !===============================================================================
 
-    use od_cell, only: num_kpoints_on_node, recip_lattice, &
-                       cell_calc_kpoint_r_cart, kpoint_r_cart, kpoint_weight, num_atoms
-    use od_electronic, only: nbands, nspins, band_energy, efermi, &
-                             electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
-                             elec_read_band_curvature, band_curvature
+    use od_cell, only: num_kpoints_on_node, cell_calc_kpoint_r_cart, kpoint_r_cart, kpoint_weight
+    use od_electronic, only: nbands, nspins, band_energy, efermi, electrons_per_state, elec_read_band_gradient, &
+    elec_read_band_curvature
     use od_comms, only: my_node_id, on_root
-    use od_parameters, only: photo_work_function, photo_photon_energy, iprint, &
-                             photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
-                             photo_temperature, photo_e_units, finite_bin_correction, adaptive_smearing, &
-                             hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
-                             write_photo_matrix
+    use od_parameters, only: photo_photon_energy, iprint, photo_elec_field, photo_surface_area, scissor_op, &
+    & photo_temperature, write_photo_matrix
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
     use od_io, only: stdout, io_error, seedname, io_file_unit, stdout
     use od_jdos_utils, only: jdos_utils_calculate
-    use od_jdos_utils, only: jdos_nbins, E
     use od_constants, only: pi, kB
     implicit none
-    integer :: N,N2 , N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle
     real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
-    real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
-    real(kind=dp) :: kbT, fermi_dirac, t_den, qe_factor, argument
-    logical :: fixed
-    integer :: matrix_unit
+    real(kind=dp) :: width, norm_vac, vac_g, transverse_g, fermi_dirac, qe_factor, argument
+    integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr, i, matrix_unit = 23
 
     width = (1.0_dp/11604.45_dp)*photo_temperature
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
@@ -1209,32 +1169,22 @@ contains
     ! Victor Chang, 7th February 2020
     !===============================================================================
 
-    use od_cell, only: num_kpoints_on_node, recip_lattice, &
-                       cell_calc_kpoint_r_cart, kpoint_r_cart, kpoint_weight, num_atoms
-    use od_electronic, only: nbands, nspins, band_energy, efermi, &
-                             electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
-                             elec_read_band_curvature, band_curvature
+    use od_cell, only: num_kpoints_on_node, cell_calc_kpoint_r_cart, kpoint_r_cart, kpoint_weight
+    use od_electronic, only: nbands, nspins, band_energy, efermi, electrons_per_state, elec_read_band_gradient,&
+    & elec_read_band_curvature
     use od_comms, only: my_node_id
-    use od_parameters, only: photo_work_function, photo_photon_energy, iprint,&
-                             photo_elec_field, photo_surface_area, jdos_spacing, scissor_op, &
-                             photo_e_units, finite_bin_correction, adaptive_smearing, &
-                             hybrid_linear_grad_tol, hybrid_linear, exclude_bands, num_exclude_bands, &
-                             photo_temperature, write_photo_matrix
+    use od_parameters, only: photo_photon_energy, iprint, photo_elec_field, photo_surface_area,  scissor_op, &
+    & photo_temperature, write_photo_matrix
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
     use od_comms, only: on_root
     use od_io, only: stdout, io_error, seedname, io_file_unit, stdout
     use od_jdos_utils, only: jdos_utils_calculate
-    use od_jdos_utils, only: jdos_nbins, E
     use od_constants, only: pi, kB
     implicit none
-    integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, transitions_den, transitions_num
-    real(kind=dp), allocatable, dimension(:, :, :, :) :: delta_temp
+    integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i
     integer :: matrix_unit = 25
-    real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
-    real(kind=dp) :: fermi_dirac, t_den, qe_factor, argument
-    logical :: fixed
+    real(kind=dp) :: width, norm_vac, vac_g, transverse_g, fermi_dirac, qe_factor, argument
 
     width = (1.0_dp/11604.45_dp)*photo_temperature
     qe_factor = 1.0_dp/(2*pi*photo_surface_area)
@@ -1389,31 +1339,17 @@ contains
     !===============================================================================
 
     use od_constants, only: dp
-    use od_electronic, only: nbands, nspins, optical_mat, num_electrons, &
-                             electrons_per_state, band_energy, efermi, foptical_mat
-    use od_cell, only: nkpoints, cell_volume, num_kpoints_on_node, cell_get_symmetry, &
-                       num_crystal_symmetry_operations, crystal_symmetry_operations, num_atoms
-    use od_parameters, only: optics_geom, optics_qdir, legacy_file_format, scissor_op, devel_flag, photo_photon_energy, iprint
+    use od_electronic, only: nbands, nspins, num_electrons, electrons_per_state, foptical_mat
+    use od_cell, only: num_kpoints_on_node, cell_get_symmetry, num_crystal_symmetry_operations, crystal_symmetry_operations
+    use od_parameters, only: optics_geom, optics_qdir, legacy_file_format, devel_flag, photo_photon_energy, iprint
     use od_io, only: io_error,stdout
     use od_comms, only: my_node_id,on_root
     implicit none
-    real(kind=dp), dimension(3) :: qdir
-    real(kind=dp), dimension(3) :: qdir1
-    real(kind=dp), dimension(3) :: qdir2
-    real(kind=dp) :: q_weight1
-    real(kind=dp) :: q_weight2
-    integer :: N, i, j, N_2
-    integer :: N_in
-    integer :: N_spin, N_spin_2
-    integer :: N2, N3
-    integer :: n_eigen, n_eigen_2
-    integer :: n_eigen2, n_eigen2_2
-    integer :: num_symm
-    integer :: ierr
-    real(kind=dp), dimension(2) :: num_occ
     complex(kind=dp), dimension(3) :: g
-    real(kind=dp) :: factor
-    real(kind=dp) :: test
+    real(kind=dp), dimension(3) :: qdir, qdir1, qdir2
+    real(kind=dp), dimension(2) :: num_occ
+    real(kind=dp) :: q_weight1, q_weight2,factor
+    integer :: N, i, j, N_in, N_spin, N2, N3, n_eigen, n_eigen2, num_symm, ierr
 
     if (.not. legacy_file_format .and. index(devel_flag, 'old_filename') > 0) then
       num_symm = 0
@@ -1565,29 +1501,22 @@ contains
     ! sum(QE*mte)/(total QE)
     ! Victor Chang, 7 February 2020
     !===============================================================================
-    use od_cell, only: num_kpoints_on_node, recip_lattice, &
-                       cell_calc_kpoint_r_cart, kpoint_r_cart, kpoint_weight, num_atoms, &
-                       num_atoms, atoms_pos_cart_photo, atoms_label_tmp
-    use od_electronic, only: nbands, nspins, band_energy, efermi, &
-                             electrons_per_state, band_gradient, elec_read_band_gradient, num_electrons, &
-                             elec_read_band_curvature, band_curvature
+    use od_cell, only: num_kpoints_on_node, cell_calc_kpoint_r_cart,atoms_label_tmp
+    use od_electronic, only: nbands, nspins, band_energy, efermi, elec_read_band_gradient, elec_read_band_curvature
     use od_comms, only: my_node_id
-    use od_parameters, only: photo_work_function, photo_photon_energy, &
-                             photo_elec_field, photo_model, exclude_bands, num_exclude_bands
+    use od_parameters, only: photo_work_function, photo_photon_energy, photo_elec_field, photo_model
     use od_dos_utils, only: doslin, doslin_sub_cell_corners
     use od_algorithms, only: gaussian
-    use od_io, only: stdout, io_error, seedname, io_file_unit, stdout
+    use od_io, only: stdout, io_error, io_file_unit, stdout
     use od_jdos_utils, only: jdos_utils_calculate
-    use od_jdos_utils, only: jdos_nbins, E
+
     implicit none
-    integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, i, j, Gx, Gy
-    integer :: angle, transitions_den, transitions_num
-    real(kind=dp) :: mean_te
+
     real(kind=dp), allocatable, dimension(:, :, :, :, :) :: te_tsm_temp
     real(kind=dp), allocatable, dimension(:, :, :, :) :: te_osm_temp
-    real(kind=dp) :: width, norm_gaus, norm_vac, vac_g, transverse_g
-    real(kind=dp) :: kbT, fermi_dirac, t_den, qe_factor
-    logical :: fixed
+    real(kind=dp) :: mean_te
+
+    integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr
 
     if (index(photo_model, '3step') > 0) then
       allocate (te_tsm_temp(nbands, nbands, num_kpoints_on_node(my_node_id), nspins, max_atoms + 1), stat=ierr)
@@ -1720,22 +1649,20 @@ contains
     ! Additionally, it takes the photoemission angles theta and phi as inputs
     ! Victor Chang, 7 February 2020
 
-    use od_cell, only: num_kpoints_on_node, cell_calc_kpoint_r_cart, kpoint_r_cart
+    use od_cell, only: num_kpoints_on_node, cell_calc_kpoint_r_cart
     use od_electronic, only: nbands, nspins, band_energy, efermi
     use od_parameters, only: photo_work_function, photo_photon_energy, fixed_smearing, &
                              photo_model, photo_theta_lower, photo_theta_upper, photo_phi_lower, photo_phi_upper
     use od_algorithms, only: gaussian
     use od_comms, only: my_node_id
-    use od_io, only: stdout, io_error, seedname, io_file_unit
+    use od_io, only: io_error, io_file_unit
     implicit none
-    real(kind=dp) :: norm_trans, qe_norm
+
     real(kind=dp), allocatable, dimension(:, :, :, :) :: binding_temp
     real(kind=dp), allocatable, dimension(:, :, :, :) :: qe_temp
 
-    integer :: e_scale, ierr
-    integer :: N, N_spin, n_eigen, n_eigen2, atom
-
-    integer :: test_unit
+    real(kind=dp) :: qe_norm
+    integer :: N, N_spin, n_eigen, atom,e_scale, ierr
 
     max_energy = int((photo_photon_energy - photo_work_function)*1000) + 100
 
@@ -1898,13 +1825,11 @@ contains
     ! Victor Chang, 7 February 2020
 
     use od_cell, only: num_kpoints_on_node
-    use od_electronic, only: nbands, nspins, efermi, band_energy
+    use od_electronic, only: nbands, nspins
     use od_comms, only: my_node_id
-    use od_io, only: stdout, io_error, seedname, io_file_unit
-    use od_parameters, only: photo_model
+    use od_io, only: io_error, seedname, io_file_unit
     implicit none
-    integer :: transverse_unit, binding_unit
-    integer :: N, N_spin, n_eigen, n_eigen2, atom, ierr, e_scale
+    integer :: atom, ierr, e_scale, binding_unit = 12
 
     real(kind=dp), allocatable, dimension(:, :) :: qe_atom
 
@@ -1952,7 +1877,7 @@ contains
     use od_cell, only: num_kpoints_on_node
     use od_parameters, only: photo_work_function, photo_elec_field, photo_temperature, photo_surface_area
     use od_electronic, only: efermi, band_energy, nbands, nspins
-    use od_io, only: stdout, io_error
+    use od_io, only: io_error
     use od_comms, only: my_node_id
     use od_constants, only: pi, epsilon_zero, ge, kB, e_charge,b_factor,p1,p2,p3,p4,q1,q2,q3,q4
     implicit none
