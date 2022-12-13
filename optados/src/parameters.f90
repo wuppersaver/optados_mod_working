@@ -773,7 +773,7 @@ contains
       endif
     endif
 
-    write (stdout, '(1x,a78)') '+--------------------------SPECTRAL PARAMETERS ------------------------------+'
+    write (stdout, '(1x,a78)') '+-------------------------- SPECTRAL PARAMETERS -----------------------------+'
     if (fixed) then
       write (stdout, '(1x,a78)') '|  Fixed Width Smearing                      :  True                         |'
       write (stdout, '(1x,a46,1x,1F10.5,20x,a1)') '|  Smearing Width                            :', fixed_smearing, '|'
@@ -882,6 +882,40 @@ contains
       else
         write (stdout, '(1x,a78)') '|  Include lifetime and Instrument Broadening:  False                        |'
       endif
+    end if
+    ! Added for Photoemission output - F. Mildner, 12/2022
+    if(photo) then
+      write (stdout, '(1x,a78)') '+----------------------- PHOTOEMISSION PARAMETERS ---------------------------+'
+      if (index(photo_model, '1step') > 0) then
+        write (stdout, '(1x,a78)') '|  Photoemission Model                       :     1-Step Model              |'
+        write (stdout, '(1x,a78)') '|  Photoemission Final State                 :     Free Electron State       |'
+      elseif (index(photo_model, '1step') > 0) then
+        write (stdout, '(1x,a78)') '|  Photoemission Model                       :     3-Step Model              |'
+        write (stdout, '(1x,a78)') '|  Photoemission Final State                 :     Bloch State               |'
+      end if
+      write (stdout, '(1x,a46,1x,1f10.4,20x,a1)')   '|  Photon Energy              (eV)           :', photo_photon_energy, '|'
+      write (stdout, '(1x,a46,1x,1f10.4,20x,a1)')   '|  Work Function              (eV)           :', photo_work_function, '|'
+      write (stdout, '(1x,a46,1x,1f10.4,20x,a1)')   '|  Surface Area               (Ang**2)       :', photo_surface_area, '|'
+      write (stdout, '(1x,a46,1x,1f10.4,20x,a1)')   '|  Slab Volume                (Ang**3)       :', photo_slab_volume, '|'
+      write (stdout, '(1x,a46,1x,1f10.4,20x,a1)')   '|  IMFP Constant              (Ang)          :', photo_imfp_const, '|'
+      if ((photo_elec_field .gt. 1.0E-4_dp) .or. (photo_elec_field .lt. 1.0E-25_dp)) then
+        write (stdout, '(1x,a46,1x,1f10.4,20x,a1)') '|  Electric Field Strength    (V/Ang)        :', photo_elec_field, '|'
+      else
+        write (stdout, '(1x,a46,1x,E17.9,13x,a1)')  '|  Electric Field Strength    (V/Ang)        :', photo_elec_field, '|'
+      end if
+      write (stdout, '(1x,a46,1x,1f8.2,22x,a1)')    '|  Smearing Temperature       (K)            :', photo_temperature, '|'
+      if (index(write_photo_matrix, 'slab') > 0) then
+        write (stdout, '(1x,a78)') '|  Writing Photoemission Matrix Elements     :     Atom Sites                |'
+        write (stdout, '(1x,a78)') '|          to *SEED*_matrix.dat ---------------------------------------------|'
+      elseif (index(write_photo_matrix, 'all' )> 0) then
+        write (stdout, '(1x,a78)') '|  Writing Photoemission Matrix Elements     :     All Elements              |'
+        write (stdout, '(1x,a78)') '|          to *SEED*_matrix.dat ---------------------------------------------|'
+      end if
+      write (stdout, '(1x,a78)') '|  Emission Angle Bounds for writing to *SEED*_binding_energy.dat -----------|'
+      write (stdout, '(1x,a46,1x,1f8.2,22x,a1)')  '|  Theta    -lower -          (deg)          :', photo_theta_lower, '|'
+      write (stdout, '(1x,a46,1x,1f8.2,22x,a1)')  '|  Theta    -upper -          (deg)          :', photo_theta_upper, '|'
+      write (stdout, '(1x,a46,1x,1f8.2,22x,a1)')  '|  Phi      -lower -          (deg)          :', photo_phi_lower, '|'
+      write (stdout, '(1x,a46,1x,1f8.2,22x,a1)')  '|  Phi      -upper -          (deg)          :', photo_phi_upper, '|'
     end if
 
     write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'

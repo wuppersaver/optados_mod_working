@@ -1591,7 +1591,7 @@ module od_photo
         'eV         Photon Energy', photo_photon_energy, 'eV   |'
       write (stdout, 224) '| Effective Work Function', work_function_eff, &
         'eV         Electric Field', photo_elec_field, 'V/A  |'
-      write (stdout, '(1x,a78)') '| Final State : Bloch state                                                  |'
+      write (stdout, '(1x,a78)') '| Final State : Bloch State                                                  |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
 
@@ -1613,7 +1613,7 @@ module od_photo
         'eV         Photon Energy', photo_photon_energy, ' eV   |'
       write (stdout, 224) '| Effective Work Function', work_function_eff, &
         'eV         Electric Field', photo_elec_field, ' V/A  |'
-      write (stdout, '(1x,a78)') '| Final State : Free electron state                                          |'
+      write (stdout, '(1x,a78)') '| Final State : Free Electron State                                          |'
       write (stdout, '(1x,a78)') '+----------------------------------------------------------------------------+'
       write (stdout, '(1x,a78)') '| Atom |  Atom Order  |   Layer   |             Quantum Efficiency           |'
 
@@ -2133,13 +2133,22 @@ module od_photo
             ! band. It's a kind of fudge that we wouldn't need if we had infinitely small bins.
             if (finite_bin_correction .and. (width < delta_bins)) width = delta_bins
 
+            ! ! The linear method has a special way to calculate the integrated dos
+            ! ! we have to take account for this here.
+            ! if (linear .and. .not. force_adaptive) then
+            !   delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), photo_photon_energy, cuml)
+            ! else
+            !   delta_temp(ib, jb, ik, is) = gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,&
+            !   &photo_photon_energy)
+            ! end if
+
             ! The linear method has a special way to calculate the integrated dos
             ! we have to take account for this here.
             if (linear .and. .not. force_adaptive) then
-              delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), photo_photon_energy, cuml)
+              delta_temp(ib, jb, ik, is) = doslin(EV(0), EV(1), EV(2), EV(3), EV(4), E(index_energy), cuml)
             else
               delta_temp(ib, jb, ik, is) = gaussian((band_energy(jb,is,ik)-band_energy(ib,is,ik))+scissor_op,width,&
-              &photo_photon_energy)
+              &E(index_energy))
             end if
 
           end do unocc_states
