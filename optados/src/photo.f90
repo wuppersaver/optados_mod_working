@@ -477,6 +477,26 @@ module od_photo
 
       reflect_photo(index_energy, atom) = reflect(index_energy)
 
+      if (iprint .eq. 4 .and. on_root) then
+        write (stdout, '(1x,a78)') '+-------------------- Printing Material Optical Properties ------------------+'
+        write (stdout, '(1x,a78)') '+--------------------------- Printing Epsilon Array -------------------------+'
+        write (stdout, 125) shape(epsilon)
+        if (.not. optics_intraband) then
+          write (stdout, '(9999(E17.8E3))') (((epsilon(jdos_bin, N, N2, 1),jdos_bin=1,jdos_nbins),N=1,2),N2=1,N_geom)
+        else
+          write (stdout, '(9999(E17.8E3))') ((((epsilon(jdos_bin, N, N2, i),jdos_bin=1,jdos_nbins),N=1,2),N2=1,N_geom),i=1,3)
+        end if
+        write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+
+        write (stdout, '(1x,a78)') '+----------------------------- Printing Absorption --------------------------+'
+        write (stdout, '(99(E17.8E3))') absorp_photo(index_energy, atom)
+        write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+
+        write (stdout, '(1x,a78)') '+----------------------------- Printing Reflection --------------------------+'
+        write (stdout, '(99(E17.8E3))') reflect_photo(index_energy, atom)
+        write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+      end if
+
       deallocate (dos_matrix_weights,stat=ierr)
       if (ierr /= 0) call io_error('Error: calc_photo_optics - failed to deallocate dos_matrix_weights')
       deallocate (dos_at_e,stat=ierr)
@@ -532,8 +552,8 @@ module od_photo
     allocate (I_layer(jdos_nbins, max_layer), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of I_layer failed')
 
-    allocate (attenuation_layer(jdos_nbins, max_atoms), stat=ierr)
-    if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of attenuation_layer failed')
+    !allocate (attenuation_layer(jdos_nbins, max_atoms), stat=ierr)
+    !if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of attenuation_layer failed')
 
     allocate (absorption_layer(jdos_nbins, max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of absorption_layer  failed')
@@ -587,12 +607,13 @@ module od_photo
       light_path(atom) = thickness_atom(atom)
     end do
 
-    attenuation_layer = 1.0_dp
+    !attenuation_layer = 1.0_dp
 
     do atom = 1, max_atoms
-      attenuation_layer(index_energy, atom) = exp(-(absorp_photo(index_energy, atom)*light_path(atom))*1E-10)
+      !attenuation_layer(index_energy, atom) = exp(-(absorp_photo(index_energy, atom)*light_path(atom))*1E-10)
       absorption_layer(index_energy, atom) = absorp_photo(index_energy, atom)*thickness_atom(atom)*1E-10
-
+      write (stdout,*) "Absorption for the layer #", atom
+      write (stdout,*) absorption_layer(index_energy, atom)
     end do
 
     I_0 = 1.0_dp

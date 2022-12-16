@@ -33,7 +33,7 @@ endif
 
 ifeq ($(SYSTEM), gfortran)
    F90_SERIAL= gfortran
-   F90_PARALLEL= mpif90 
+   F90_PARALLEL= mpif90
    FFLAGS= -fconvert=big-endian -fPIC
    FFLAGS_PARALLEL=  -DMPI
    FFLAGS_FAST= -O3
@@ -44,16 +44,16 @@ endif
 ifeq ($(SYSTEM), nag)
    F90_SERIAL= nagfor
    F90_PARALLEL= mpif90
-   FFLAGS= -DNAG 
+   FFLAGS= -DNAG
    FFLAGS_PARALLEL=
    FFLAGS_FAST= -O3 -Oassumed -w=all
-   FFLAGS_DEBUG= -Ddebug -g -O0 -C=all -gline -w=all 
+   FFLAGS_DEBUG= -Ddebug -g -O0 -C=all -gline -w=all
    EXTENSION=.nag
 endif
 
 ifeq ($(SYSTEM), ifort)
    F90_SERIAL= ifort
-   F90_PARALLEL= mpif90 
+   F90_PARALLEL= mpif90
    FFLAGS= -convert big_endian
    FFLAGS_PARALLEL= -DMPI
    FFLAGS_FAST= -O3
@@ -63,7 +63,7 @@ endif
 
 ifeq ($(SYSTEM), pathscale)
    F90_SERIAL= pathf95
-   F90_PARALLEL= mpif90 
+   F90_PARALLEL= mpif90
    FFLAGS= -byteswapio
    FFLAGS_PARALLEL=  -DMPI
    FFLAGS_FAST= -O3 -OPT:Ofast -ffast-math -OPT:recip=ON -OPT:malloc_algorithm=1
@@ -75,18 +75,18 @@ ifeq ($(SYSTEM), pgf90)
    F90_SERIAL= pgf90
    F90_PARALLEL= mpif90
    FFLAGS= -Mbyteswapio
-   FFLAGS_PARALLEL= -DMPI 
+   FFLAGS_PARALLEL= -DMPI
    FFLAGS_FAST= -O3
-   FFLAGS_DEBUG= -O0 -C -pg -g -Mbounds 
+   FFLAGS_DEBUG= -O0 -C -pg -g -Mbounds
    EXTENSION=.pgf90
 endif
 
 ifeq ($(SYSTEM), sun)
    F90_SERIAL= sunf95
    F90_PARALLEL= mpif90
-   FFLAGS= 
+   FFLAGS=
    FFLAGS_PARALLEL= -DMPI
-   FFLAGS_FAST= 
+   FFLAGS_FAST=
    FFLAGS_DEBUG= -O0 -C -pg -g
    EXTENSION=.sunf95
 endif
