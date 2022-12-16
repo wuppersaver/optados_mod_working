@@ -347,7 +347,7 @@ module od_photo
     use od_constants, only: epsilon_0, e_charge
 
     implicit none
-    
+
     real(kind=dp), allocatable, dimension(:, :, :, :) :: dos_matrix_weights
     real(kind=dp), allocatable, dimension(:, :) :: weighted_dos_at_e
     real(kind=dp), allocatable, dimension(:, :) :: dos_at_e
@@ -710,7 +710,7 @@ module od_photo
 
     call cell_calc_kpoint_r_cart
 
-    if (iprint .eq. 6) then
+    if ((iprint .eq. 6 .and. on_root) .or. (iprint .eq. 7 .and. on_root)) then
       write (stdout, '(a78)') "+---------------- Printing K-Points in Cartesian Coordinates ----------------+"
       do N = 1, num_kpoints_on_node(my_node_id)
         write(stdout, '(3(1x,E22.15))') kpoint_r_cart(:,N)
@@ -749,8 +749,12 @@ module od_photo
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
         do n_eigen = 1, nbands
-          phi_arpes(n_eigen, N, N_spin) = &
+          if ((E_x(n_eigen, N, N_spin) .eq. 0.0_dp) .and. (E_y(n_eigen, N, N_spin) .eq. 0.0_dp)) then
+            phi_arpes(n_eigen, N, N_spin) = atan(1.0_dp)*rad_to_deg
+          else
+            phi_arpes(n_eigen, N, N_spin) = &
             atan(E_x(n_eigen, N, N_spin)/E_y(n_eigen, N, N_spin))*rad_to_deg
+          end if
         end do
       end do
     end do
@@ -1145,13 +1149,26 @@ module od_photo
     end if
 
     if ((iprint .eq. 4 .and. on_root) .or. (iprint .eq. 6 .and. on_root)) then
-      write (stdout, '(1x,a78)') '+------------------------- Printing 3step QE Matrix -------------------------+'
+      write (stdout, '(1x,a78)') '+----------------------- Printing Full 3step QE Matrix ----------------------+'
       write (stdout, '(5(1x,I4))') shape(qe_tsm)
       write (stdout, '(5(1x,I4))') nbands, nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
-            write(stdout,'(99999(es15.8))') ((qe_tsm(n_eigen,n_eigen2,N,N_spin,atom),n_eigen2=1,nbands),n_eigen=1,nbands)
+            write(stdout,'(99999(ES16.8E3))') ((qe_tsm(n_eigen,n_eigen2,N,N_spin,atom),n_eigen2=1,nbands),n_eigen=1,nbands)
+          end do
+        end do
+      end do
+      write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
+    end if
+    if ((iprint .eq. 7 .and. on_root)) then
+      write (stdout, '(1x,a78)') '+--------------------- Printing Reduced 3step QE Matrix ---------------------+'
+      write (stdout, '(5(1x,I4))') shape(qe_tsm)
+      write (stdout, '(5(1x,I4))') nbands, num_kpoints_on_node(my_node_id),nspins, max_atoms+1
+      do atom=1,max_atoms+1
+        do N_spin=1,nspins
+          do N=1,num_kpoints_on_node(my_node_id)
+            write(stdout,'(99999(ES16.8E3))') (sum(qe_tsm(n_eigen,1:nbands,N,N_spin,atom)),n_eigen=1,nbands)
           end do
         end do
       end do
@@ -1314,7 +1331,7 @@ module od_photo
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
-            write(stdout,'(9999(es15.8))') (qe_osm(n_eigen,N,N_spin,atom),n_eigen=1,nbands)
+            write(stdout,'(9999(ES16.8E3))') (qe_osm(n_eigen,N,N_spin,atom),n_eigen=1,nbands)
           end do
         end do
       end do
