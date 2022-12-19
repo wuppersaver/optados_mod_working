@@ -40,16 +40,16 @@ module od_photo
   real(kind=dp), allocatable, dimension(:, :, :) :: pdos_weights_k_band
   real(kind=dp), allocatable, dimension(:, :, :) :: imfp_val
   real(kind=dp), allocatable, dimension(:, :, :, :) :: electron_esc
-  real(kind=dp), dimension(:, :), allocatable :: I_layer
-  real(kind=dp), dimension(:, :), allocatable :: absorption_layer
+  real(kind=dp), dimension(:), allocatable :: I_layer
+  real(kind=dp), dimension(:), allocatable :: absorption_layer
   real(kind=dp), dimension(:), allocatable :: total_absorption
   real(kind=dp), dimension(:), allocatable :: total_transmittance
   real(kind=dp), allocatable, public, save :: E(:)
   real(kind=dp), allocatable, public, dimension(:, :) :: weighted_dos_at_e_photo
   real(kind=dp), allocatable, dimension(:, :, :, :) :: epsilon
   real(kind=dp), allocatable, dimension(:, :) :: epsilon_sum
-  real(kind=dp), allocatable, dimension(:, :)  :: reflect_photo
-  real(kind=dp), allocatable, dimension(:, :) :: absorp_photo
+  real(kind=dp), allocatable, dimension(:)  :: reflect_photo
+  real(kind=dp), allocatable, dimension(:) :: absorp_photo
 
   real(kind=dp), allocatable, dimension(:, :) :: refract
   real(kind=dp), allocatable, dimension(:)  :: reflect
@@ -355,9 +355,9 @@ module od_photo
     integer :: N, N2, N_spin, n_eigen, n_eigen2, atom, ierr
     integer :: jdos_bin,i,s
 
-    allocate (absorp_photo(jdos_nbins, max_atoms), stat=ierr)
+    allocate (absorp_photo(max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_photo_optics - allocation of absorp_photo failed')
-    allocate (reflect_photo(jdos_nbins, max_atoms), stat=ierr)
+    allocate (reflect_photo(max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_photo_optics - allocation of reflect_photo failed')
 
     index_energy = int(photo_photon_energy/jdos_spacing)
@@ -473,9 +473,9 @@ module od_photo
 
       end if
 
-      absorp_photo(index_energy, atom) = absorp(index_energy)
+      absorp_photo(atom) = absorp(index_energy)
 
-      reflect_photo(index_energy, atom) = reflect(index_energy)
+      reflect_photo(atom) = reflect(index_energy)
 
       if (iprint .eq. 4 .and. on_root) then
         write (stdout, '(1x,a78)') '+-------------------- Printing Material Optical Properties ------------------+'
@@ -489,11 +489,11 @@ module od_photo
         write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
 
         write (stdout, '(1x,a78)') '+----------------------------- Printing Absorption --------------------------+'
-        write (stdout, '(99(E17.8E3))') absorp_photo(index_energy, atom)
+        write (stdout, '(99(E17.8E3))') absorp_photo(atom)
         write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
 
         write (stdout, '(1x,a78)') '+----------------------------- Printing Reflection --------------------------+'
-        write (stdout, '(99(E17.8E3))') reflect_photo(index_energy, atom)
+        write (stdout, '(99(E17.8E3))') reflect_photo(atom)
         write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
       end if
 
@@ -549,13 +549,13 @@ module od_photo
 
     light_path = 0.0_dp
 
-    allocate (I_layer(jdos_nbins, max_layer), stat=ierr)
+    allocate (I_layer(max_layer), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of I_layer failed')
 
     !allocate (attenuation_layer(jdos_nbins, max_atoms), stat=ierr)
     !if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of attenuation_layer failed')
 
-    allocate (absorption_layer(jdos_nbins, max_atoms), stat=ierr)
+    allocate (absorption_layer(max_atoms), stat=ierr)
     if (ierr /= 0) call io_error('Error: calc_absorp_layer - allocation of absorption_layer  failed')
 
     allocate (total_absorption(jdos_nbins), stat=ierr)
@@ -611,21 +611,21 @@ module od_photo
 
     do atom = 1, max_atoms
       !attenuation_layer(index_energy, atom) = exp(-(absorp_photo(index_energy, atom)*light_path(atom))*1E-10)
-      absorption_layer(index_energy, atom) = absorp_photo(index_energy, atom)*thickness_atom(atom)*1E-10
+      absorption_layer(atom) = absorp_photo(atom)*thickness_atom(atom)*1E-10
       write (stdout,*) "Absorption for the layer #", atom
-      write (stdout,*) absorption_layer(index_energy, atom)
+      write (stdout,*) absorption_layer(atom)
     end do
 
     I_0 = 1.0_dp
     I_layer = 1.0_dp
-    I_layer(:, 1) = I_0 - reflect_photo(index_energy, 1)
+    I_layer(1) = I_0 - reflect_photo(1)
     if (max_layer .gt. 1) then
 
       do atom = first_atom_second_l, max_atoms
-        I_layer(index_energy, layer(atom)) = I_layer(index_energy, layer(atom) - 1)* &
-                                         exp(-(absorp_photo(index_energy, atom)*light_path(atom)*1E-10))
-        if (I_layer(index_energy, layer(atom)) .lt. 0.0_dp) then
-          I_layer(index_energy, layer(atom)) = 0.0_dp
+        I_layer(layer(atom)) = I_layer(layer(atom) - 1)* &
+                                         exp(-(absorp_photo(atom)*light_path(atom)*1E-10))
+        if (I_layer(layer(atom)) .lt. 0.0_dp) then
+          I_layer(layer(atom)) = 0.0_dp
         end if
       end do
 
@@ -643,7 +643,7 @@ module od_photo
     if (iprint .eq. 4 .and. on_root) then
       write (stdout, '(1x,a78)') '+----------------------- Printing Intensity per Layer -----------------------+'
       write (stdout, '(1x,I4,1x,I4,1x)') jdos_nbins, max_layer
-      write(stdout,'(9999(es15.8))') ((I_layer(jdos_bin, num_layer),jdos_bin=1,jdos_nbins),num_layer=1,max_layer)
+      write(stdout,'(9999(es15.8))') (I_layer(num_layer),num_layer=1,max_layer)
       write (stdout, '(1x,a78)') '+----------------------------- Finished Printing ----------------------------+'
     end if
 
@@ -933,11 +933,11 @@ module od_photo
       end do
     end do
 
-    bulk_light_tmp(1) = I_layer(index_energy, layer(max_atoms))* &
-                        exp(-(absorp_photo(index_energy, max_atoms)*thickness_atom(max_atoms)*1E-10))
+    bulk_light_tmp(1) = I_layer(layer(max_atoms))* &
+                        exp(-(absorp_photo(max_atoms)*thickness_atom(max_atoms)*1E-10))
     do i = 2, num_layers
       bulk_light_tmp(i) = bulk_light_tmp(i - 1)* &
-                          exp(-(absorp_photo(index_energy, max_atoms)*i*thickness_atom(max_atoms)*1E-10))
+                          exp(-(absorp_photo(max_atoms)*i*thickness_atom(max_atoms)*1E-10))
     end do
     do N = 1, num_kpoints_on_node(my_node_id)   ! Loop over kpoints
       do N_spin = 1, nspins                    ! Loop over spins
