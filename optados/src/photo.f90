@@ -772,9 +772,10 @@ module od_photo
         do n_eigen = 1, nbands
           if ((E_x(n_eigen, N, N_spin) .eq. 0.0_dp) .and. (E_y(n_eigen, N, N_spin) .eq. 0.0_dp)) then
             phi_arpes(n_eigen, N, N_spin) = atan(1.0_dp)*rad_to_deg
+          elseif (E_y(n_eigen, N, N_spin) .eq. 0.0_dp) then
+            phi_arpes(n_eigen, N, N_spin) = 90.0_dp
           else
-            phi_arpes(n_eigen, N, N_spin) = &
-            atan(E_x(n_eigen, N, N_spin)/E_y(n_eigen, N, N_spin))*rad_to_deg
+            phi_arpes(n_eigen, N, N_spin) = atan(E_x(n_eigen, N, N_spin)/E_y(n_eigen, N, N_spin))*rad_to_deg
           end if
         end do
       end do
