@@ -1061,11 +1061,11 @@ module od_photo
     end if
 
     if (iprint .eq. 5 .and. on_root) then
-      i = 14 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing
+      i = 16 ! Defines the number of columns printed in the loop - needed for reshaping the data array during postprocessing
       write (stdout, '(1x,a78)') '+------------ Printing list of values going into 3step QE Values ------------+'
-      write (stdout, '(1x,a217)') 'band_eigenvalue - matrix_weights - delta_temp - electron_esc - electrons_per_state -&
-      & kpoint_weight - I_layer - qe_factor - transverse_g - vac_g - fermi_dirac - pdos_weights_atoms - pdos_weights_k_band&
-      & - field_emission'
+      write (stdout, '(1x,a261)') 'calced_qe_value - initial_state_energy - final_state_energy - matrix_weights - delta_temp -&
+      & electron_esc - electrons_per_state - kpoint_weight - I_layer - qe_factor - transverse_g - vac_g - fermi_dirac -&
+      & pdos_weights_atoms - pdos_weights_k_band - field_emission'
       write (stdout, '(1x,a10,E26.15E3)') 'E_Fermi = ',efermi
       write (stdout, '(1x,a11,6(1x,I4))')  'Array Shape', max_atoms, nbands, nbands, nspins, num_kpoints_on_node(my_node_id), i
     end if
@@ -1101,15 +1101,6 @@ module od_photo
           end if
 
           do n_eigen2 = 1, nbands
-            do atom = 1, max_atoms
-              if (iprint .eq. 5 .and. on_root) then
-                write (stdout, '(1x,E26.15E3,13(1x,E17.9E3))') band_energy(n_eigen2, N_spin, N), &
-                matrix_weights(n_eigen, n_eigen2, N, N_spin, 1), delta_temp(n_eigen, n_eigen2, N, N_spin), &
-                electron_esc(n_eigen, N, N_spin, atom), electrons_per_state, kpoint_weight(N), I_layer(index_energy, layer(atom)), &
-                qe_factor, transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin), &
-                pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
-              end if
-            end do
             !! this could be checked if it has an impact on the final value
             if (band_energy(n_eigen2, N_spin, N) .lt. efermi) cycle
             do atom = 1, max_atoms
@@ -1118,11 +1109,20 @@ module od_photo
                  delta_temp(n_eigen, n_eigen2, N, N_spin)* &
                  electron_esc(n_eigen, N, N_spin, atom)* &
                  electrons_per_state*kpoint_weight(N)* &
-                 (I_layer(index_energy, layer(atom)))* &
+                 (I_layer(layer(atom)))* &
                  qe_factor*transverse_g*vac_g*fermi_dirac* &
                  (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
                 (1.0_dp + field_emission(n_eigen, N_spin, N))
+                if (iprint .eq. 5 .and. on_root) then
+                  write (stdout, '(1x,a1,5(1x,I4),a2)')  '(', atom, n_eigen, n_eigen2, N_spin, N, ' )'
+                  write (stdout, '(16(1x,E17.9E3))') qe_tsm(n_eigen, n_eigen2, N, N_spin, atom), band_energy(n_eigen, N_spin, N),&
+                  band_energy(n_eigen2, N_spin, N), matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
+                  delta_temp(n_eigen, n_eigen2, N, N_spin), electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,&
+                  kpoint_weight(N), I_layer(layer(atom)), qe_factor, transverse_g,vac_g,fermi_dirac, &
+                  pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin), pdos_weights_k_band(n_eigen, N, N_spin), &
+                  field_emission(n_eigen, N_spin, N)
+                end if
             end do
             qe_tsm(n_eigen, n_eigen2, N, N_spin, max_atoms + 1) = &
               (matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
@@ -1189,7 +1189,7 @@ module od_photo
       do atom=1,max_atoms+1
         do N_spin=1,nspins
           do N=1,num_kpoints_on_node(my_node_id)
-            write(stdout,'(99999(ES16.8E3))') (sum(qe_tsm(n_eigen,1:nbands,N,N_spin,atom)),n_eigen=1,nbands)
+            write(stdout,'(9999(ES16.8E3))') (sum(qe_tsm(n_eigen,1:nbands,N,N_spin,atom)),n_eigen=1,nbands)
           end do
         end do
       end do
@@ -1299,14 +1299,14 @@ module od_photo
                 (foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1)* &
                 (electron_esc(n_eigen, N, N_spin, atom))* &
                 electrons_per_state*kpoint_weight(N)* &
-                (I_layer(index_energy, layer(atom)))* &
+                (I_layer(layer(atom)))* &
                 qe_factor*transverse_g*vac_g*fermi_dirac* &
                 (pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin)/ &
                   pdos_weights_k_band(n_eigen, N, N_spin)))* &
                   (1.0_dp + field_emission(n_eigen, N_spin, N))
             if (iprint .eq. 5 .and. on_root) then
               write (stdout, '(12(1x,E16.8E4))') foptical_matrix_weights(n_eigen, n_eigen2, N, N_spin, 1),&
-              electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(index_energy, layer(atom)), &
+              electron_esc(n_eigen, N, N_spin, atom), electrons_per_state,kpoint_weight(N), I_layer(layer(atom)), &
               qe_factor,transverse_g,vac_g,fermi_dirac, pdos_weights_atoms(atom_order(atom), n_eigen, N, N_spin),&
               pdos_weights_k_band(n_eigen, N, N_spin), field_emission(n_eigen, N_spin, N)
             end if
